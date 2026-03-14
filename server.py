@@ -478,9 +478,8 @@ def instagram_callback():
         err_body = getattr(e, 'read', lambda: b'no body')()
         if isinstance(err_body, bytes): err_body = err_body.decode('utf-8')
         print(f'DEBUG IG - FB error: {e} | body: {err_body}')
-        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error Facebook:</h2><pre style="color:#fbbf24;font-size:13px;white-space:pre-wrap;">{e}
-
-{err_body}</pre></body></html>'
+        msg = str(e) + '\n\n' + str(err_body)
+        return '<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error Facebook:</h2><pre style="color:#fbbf24;font-size:13px;white-space:pre-wrap;">' + msg + '</pre></body></html>'
     try:
         token=tok['access_token']
         req2=urllib.request.Request(f'https://graph.facebook.com/v18.0/me/accounts?access_token={token}')
