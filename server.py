@@ -470,6 +470,15 @@ def instagram_callback():
     print(f'DEBUG IG - Code len: {len(code)}')
     data=urllib.parse.urlencode({'client_id':app_id,'client_secret':app_secret,'redirect_uri':redirect_uri,'code':code}).encode()
     req=urllib.request.Request('https://graph.facebook.com/v18.0/oauth/access_token',data=data,method='POST')
+
+import urllib.error
+
+try:
+    r=urllib.request.urlopen(req)
+except urllib.error.HTTPError as e:
+    err_body=e.read().decode('utf-8')
+    print("DEBUG IG - Facebook error:", err_body)
+    return f"<html><body><h2>Facebook Error</h2><pre>{err_body}</pre></body></html>"
     err_body=''
     try:
         with urllib.request.urlopen(req) as r:
