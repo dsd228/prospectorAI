@@ -8,7 +8,7 @@ import smtplib, ssl, json, sqlite3, os, uuid, threading, time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
-import urllib.request, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
