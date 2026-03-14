@@ -461,20 +461,27 @@ def instagram_auth():
 def instagram_callback():
     code=request.args.get('code'); cfg=get_cfg()
     if not code: return '<script>window.close()</script>'
+    redirect_uri = f'{BASE_URL}/api/social/auth/instagram/callback'
+    app_id = cfg.get('meta_app_id','')
+    app_secret = cfg.get('meta_app_secret','')
+    print(f'DEBUG IG - App ID: [{app_id}]')
+    print(f'DEBUG IG - Secret len: {len(app_secret)}')
+    print(f'DEBUG IG - Redirect URI: [{redirect_uri}]')
+    print(f'DEBUG IG - Code len: {len(code)}')
+    data=urllib.parse.urlencode({'client_id':app_id,'client_secret':app_secret,'redirect_uri':redirect_uri,'code':code}).encode()
+    req=urllib.request.Request('https://graph.facebook.com/v18.0/oauth/access_token',data=data,method='POST')
+    err_body=''
     try:
-        redirect_uri = f'{BASE_URL}/api/social/auth/instagram/callback'
-        app_id = cfg.get('meta_app_id','')
-        app_secret = cfg.get('meta_app_secret','')
-        print(f'DEBUG IG - App ID: {app_id}')
-        print(f'DEBUG IG - Redirect URI: {redirect_uri}')
-        data=urllib.parse.urlencode({'client_id':app_id,'client_secret':app_secret,'redirect_uri':redirect_uri,'code':code}).encode()
-        req=urllib.request.Request('https://graph.facebook.com/v18.0/oauth/access_token',data=data,method='POST')
-        try:
-            with urllib.request.urlopen(req) as r: tok=json.loads(r.read())
-        except urllib.error.HTTPError as http_err:
-            err_body=http_err.read().decode('utf-8')
-            print(f'DEBUG IG - Facebook error {http_err.code}: {err_body}')
-            return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error Facebook {http_err.code}:</h2><pre style="color:#fbbf24;font-size:14px;white-space:pre-wrap;">{err_body}</pre></body></html>'
+        with urllib.request.urlopen(req) as r:
+            tok=json.loads(r.read())
+    except Exception as e:
+        err_body = getattr(e, 'read', lambda: b'no body')()
+        if isinstance(err_body, bytes): err_body = err_body.decode('utf-8')
+        print(f'DEBUG IG - FB error: {e} | body: {err_body}')
+        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error Facebook:</h2><pre style="color:#fbbf24;font-size:13px;white-space:pre-wrap;">{e}
+
+{err_body}</pre></body></html>'
+    try:
         token=tok['access_token']
         req2=urllib.request.Request(f'https://graph.facebook.com/v18.0/me/accounts?access_token={token}')
         with urllib.request.urlopen(req2) as r: pages=json.loads(r.read())
@@ -485,9 +492,9 @@ def instagram_callback():
             ig_id=ig.get('instagram_business_account',{}).get('id','')
         conn=get_db(); conn.execute('INSERT OR REPLACE INTO social_tokens VALUES (?,?,?,?,?,?)',('instagram',token,'','',ig_id,'{}')); conn.commit(); conn.close()
         return '<html><body style="background:#080808;color:#F2AABF;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><h2>✓ Instagram conectado. Podés cerrar esta ventana.</h2></body></html>'
-    except Exception as e:
-        print(f'DEBUG IG - Exception: {e}')
-        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error:</h2><pre style="color:#fbbf24;font-size:14px;white-space:pre-wrap;">{e}</pre></body></html>'
+    except Exception as e2:
+        print(f'DEBUG IG - Step2 error: {e2}')
+        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error paso 2:</h2><pre style="color:#fbbf24;font-size:13px;white-space:pre-wrap;">{e2}</pre></body></html>'
 
 @app.route('/')
 def index(): return send_file('index.html')
