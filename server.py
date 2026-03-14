@@ -247,40 +247,35 @@ def get_stats():
 
 @app.route('/api/ai/generate', methods=['POST'])
 def ai_generate():
-    """Genera texto con Groq API (gratis, rápido)"""
+    """Genera texto con Gemini API (Google, gratis)"""
     d = request.json
     prompt = d.get('prompt', '')
     if not prompt:
         return jsonify({'ok': False, 'error': 'Prompt vacío'})
-    api_key = os.environ.get('GROQ_API_KEY', '')
+    api_key = os.environ.get('GEMINI_API_KEY', '')
     if not api_key:
         cfg = get_cfg()
-        api_key = cfg.get('groq_api_key', '')
+        api_key = cfg.get('gemini_api_key', '')
     if not api_key:
-        return jsonify({'ok': False, 'error': 'Configurá GROQ_API_KEY en Render → Environment'})
+        return jsonify({'ok': False, 'error': 'Configurá GEMINI_API_KEY en Render → Environment'})
     body = json.dumps({
-        'model': 'llama-3.3-70b-versatile',
-        'messages': [{'role': 'user', 'content': prompt}],
-        'max_tokens': 1024,
-        'temperature': 0.7
+        'contents': [{'parts': [{'text': prompt}]}],
+        'generationConfig': {'maxOutputTokens': 1024, 'temperature': 0.7}
     }).encode()
     try:
         req = urllib.request.Request(
-            'https://api.groq.com/openai/v1/chat/completions',
+            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}',
             data=body,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {api_key}'
-            },
+            headers={'Content-Type': 'application/json'},
             method='POST'
         )
         with urllib.request.urlopen(req, timeout=30) as r:
             res = json.loads(r.read())
-        text = res['choices'][0]['message']['content']
+        text = res['candidates'][0]['content']['parts'][0]['text']
         return jsonify({'ok': True, 'response': text})
     except urllib.error.HTTPError as e:
         err = e.read().decode('utf-8')
-        print(f'Groq API error: {err}')
+        print(f'Gemini API error: {err}')
         return jsonify({'ok': False, 'error': err})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
