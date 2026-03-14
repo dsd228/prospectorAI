@@ -47,6 +47,33 @@ def init_db():
 
 init_db()
 
+def seed_tokens_from_env():
+    """Al arrancar, carga tokens desde variables de entorno si no están en la DB."""
+    seeds = [
+        ('instagram', 'INSTAGRAM_TOKEN', 'INSTAGRAM_USER_ID', 'INSTAGRAM_USERNAME'),
+        ('linkedin',  'LINKEDIN_TOKEN',  'LINKEDIN_USER_ID',  'LINKEDIN_USERNAME'),
+    ]
+    conn = get_db()
+    for platform, tok_env, uid_env, uname_env in seeds:
+        token = os.environ.get(tok_env, '')
+        if not token:
+            continue
+        existing = conn.execute(
+            'SELECT access_token FROM social_tokens WHERE platform=?', (platform,)
+        ).fetchone()
+        if existing:
+            continue
+        uid   = os.environ.get(uid_env, '')
+        uname = os.environ.get(uname_env, '')
+        conn.execute(
+            'INSERT OR REPLACE INTO social_tokens VALUES (?,?,?,?,?,?)',
+            (platform, token, '', '', uid, json.dumps({'username': uname}))
+        )
+        print(f'[startup] Token {platform} cargado desde env ({uname or uid})')
+    conn.commit(); conn.close()
+
+seed_tokens_from_env()
+
 def log_activity(pid, type_, desc):
     conn = get_db()
     conn.execute('INSERT INTO activities VALUES (?,?,?,?,?)',
