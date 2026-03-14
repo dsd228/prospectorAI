@@ -449,58 +449,198 @@ def linkedin_callback():
     except Exception as e:
         return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;">Error: {e}</body></html>'
 
+# ── INSTAGRAM LOGIN API (token directo, sin OAuth complicado) ────
+def _ig_api(path, token, method='GET', body=None):
+    """Helper: llama Graph API y devuelve (data_dict, error_str)"""
+    sep = '&' if '?' in path else '?'
+    url = f'https://graph.instagram.com/{path}{sep}access_token={token}'
+    try:
+        data = json.dumps(body).encode() if body else None
+        hdrs = {'Content-Type': 'application/json'} if body else {}
+        req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
+        with urllib.request.urlopen(req) as r:
+            return json.loads(r.read()), None
+    except urllib.error.HTTPError as e:
+        err = e.read().decode('utf-8')
+        print(f'IG API error {path}: {err}')
+        try: msg = json.loads(err).get('error', {}).get('message', err)
+        except: msg = err
+        return None, msg
+    except Exception as e:
+        return None, str(e)
+
 @app.route('/api/social/auth/instagram')
 def instagram_auth():
-    cfg=get_cfg(); app_id=cfg.get('meta_app_id','')
-    if not app_id: return jsonify({'ok':False,'error':'Configurá Meta App ID en Ajustes → Redes Sociales'})
-    ru=f'{BASE_URL}/api/social/auth/instagram/callback'
-    url=f'https://www.facebook.com/v18.0/dialog/oauth?client_id={app_id}&redirect_uri={urllib.parse.quote(ru)}&scope=instagram_basic,instagram_content_publish,pages_show_list'
-    return jsonify({'ok':True,'auth_url':url})
+    """Inicia OAuth con Instagram Login API (v21+)"""
+    cfg = get_cfg()
+    app_id = cfg.get('meta_app_id', '')
+    if not app_id:
+        return jsonify({'ok': False, 'error': 'Configurá Meta App ID en Ajustes → Redes Sociales'})
+    ru = f'{BASE_URL}/api/social/auth/instagram/callback'
+    scopes = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_content_publish'
+    url = (f'https://www.instagram.com/oauth/authorize'
+           f'?enable_fb_login=0&force_authentication=1'
+           f'&client_id={app_id}'
+           f'&redirect_uri={urllib.parse.quote(ru)}'
+           f'&response_type=code'
+           f'&scope={urllib.parse.quote(scopes)}')
+    return jsonify({'ok': True, 'auth_url': url})
 
 @app.route('/api/social/auth/instagram/callback')
 def instagram_callback():
-    code=request.args.get('code'); cfg=get_cfg()
-    if not code: return '<script>window.close()</script>'
+    """Callback OAuth Instagram Login API — obtiene token y perfil"""
+    code = request.args.get('code')
+    cfg  = get_cfg()
+    if not code:
+        return '<script>window.close()</script>'
+    app_id     = cfg.get('meta_app_id', '')
+    app_secret = cfg.get('meta_app_secret', '')
     redirect_uri = f'{BASE_URL}/api/social/auth/instagram/callback'
-    app_id = cfg.get('meta_app_id','')
-    app_secret = cfg.get('meta_app_secret','')
-    print(f'DEBUG IG - App ID: [{app_id}]')
-    print(f'DEBUG IG - Secret len: {len(app_secret)}')
-    print(f'DEBUG IG - Redirect URI: [{redirect_uri}]')
-    print(f'DEBUG IG - Code len: {len(code)}')
-    data=urllib.parse.urlencode({'client_id':app_id,'client_secret':app_secret,'redirect_uri':redirect_uri,'code':code}).encode()
-    req = urllib.request.Request(
-        'https://graph.facebook.com/v18.0/oauth/access_token',
-        data=data,
-        method='POST'
-    )
+    print(f'IG callback — app_id={app_id} secret_len={len(app_secret)} code_len={len(code)}')
+    # 1) Intercambiar code → token de corta duración
+    data = urllib.parse.urlencode({
+        'client_id': app_id, 'client_secret': app_secret,
+        'grant_type': 'authorization_code',
+        'redirect_uri': redirect_uri, 'code': code
+    }).encode()
     try:
+        req = urllib.request.Request(
+            'https://api.instagram.com/oauth/access_token', data=data, method='POST')
         with urllib.request.urlopen(req) as r:
-            tok=json.loads(r.read())
+            short = json.loads(r.read())
     except urllib.error.HTTPError as e:
         body = e.read().decode('utf-8')
-        print("DEBUG IG - FACEBOOK BODY:", body)
-        return f"<h2>Facebook OAuth Error</h2><pre>{body}</pre>"
-    except Exception as e:
-        err_body = getattr(e, 'read', lambda: b'no body')()
-        if isinstance(err_body, bytes): err_body = err_body.decode('utf-8')
-        print(f'DEBUG IG - FB error: {e} | body: {err_body}')
-        msg = str(e) + '\n\n' + str(err_body)
-        return '<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error Facebook:</h2><pre style="color:#fbbf24;font-size:13px;white-space:pre-wrap;">' + msg + '</pre></body></html>'
+        print(f'IG step1 error: {body}')
+        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error paso 1 (token corto):</h2><pre style="color:#fbbf24">{body}</pre></body></html>'
+    short_token = short.get('access_token', '')
+    ig_user_id  = str(short.get('user_id', ''))
+    print(f'IG step1 OK — user_id={ig_user_id}')
+    # 2) Intercambiar → token de larga duración (60 días)
+    params = urllib.parse.urlencode({
+        'grant_type': 'ig_exchange_token',
+        'client_secret': app_secret,
+        'access_token': short_token
+    })
     try:
-        token=tok['access_token']
-        req2=urllib.request.Request(f'https://graph.facebook.com/v18.0/me/accounts?access_token={token}')
-        with urllib.request.urlopen(req2) as r: pages=json.loads(r.read())
-        ig_id=''
-        if pages.get('data'):
-            req3=urllib.request.Request(f'https://graph.facebook.com/v18.0/{pages["data"][0]["id"]}?fields=instagram_business_account&access_token={token}')
-            with urllib.request.urlopen(req3) as r: ig=json.loads(r.read())
-            ig_id=ig.get('instagram_business_account',{}).get('id','')
-        conn=get_db(); conn.execute('INSERT OR REPLACE INTO social_tokens VALUES (?,?,?,?,?,?)',('instagram',token,'','',ig_id,'{}')); conn.commit(); conn.close()
-        return '<html><body style="background:#080808;color:#F2AABF;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><h2>✓ Instagram conectado. Podés cerrar esta ventana.</h2></body></html>'
-    except Exception as e2:
-        print(f'DEBUG IG - Step2 error: {e2}')
-        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error paso 2:</h2><pre style="color:#fbbf24;font-size:13px;white-space:pre-wrap;">{e2}</pre></body></html>'
+        req2 = urllib.request.Request(
+            f'https://graph.instagram.com/access_token?{params}')
+        with urllib.request.urlopen(req2) as r:
+            long_tok = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8')
+        print(f'IG step2 error: {body}')
+        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error paso 2 (token largo):</h2><pre style="color:#fbbf24">{body}</pre></body></html>'
+    token      = long_tok.get('access_token', short_token)
+    expires_in = long_tok.get('expires_in', 5184000)
+    expires_at = (datetime.now() + timedelta(seconds=expires_in)).strftime('%Y-%m-%d')
+    # 3) Obtener perfil
+    profile, err = _ig_api(f'{ig_user_id}?fields=id,name,username', token)
+    if err:
+        print(f'IG profile error: {err}')
+        profile = {'id': ig_user_id, 'username': ig_user_id, 'name': ''}
+    username = profile.get('username', ig_user_id)
+    name     = profile.get('name', '')
+    print(f'IG connected — @{username} id={ig_user_id}')
+    conn = get_db()
+    conn.execute('INSERT OR REPLACE INTO social_tokens VALUES (?,?,?,?,?,?)',
+        ('instagram', token, '', expires_at, ig_user_id,
+         json.dumps({'username': username, 'name': name})))
+    conn.commit(); conn.close()
+    return (f'<html><body style="background:#080808;color:#F2AABF;font-family:sans-serif;'
+            f'display:flex;flex-direction:column;align-items:center;justify-content:center;'
+            f'height:100vh;margin:0;gap:8px">'
+            f'<h2>✓ Instagram conectado</h2>'
+            f'<p style="color:#aaa;margin:0">@{username} · token válido hasta {expires_at}</p>'
+            f'<p style="color:#666;font-size:12px">Podés cerrar esta ventana</p>'
+            f'</body></html>')
+
+@app.route('/api/social/auth/instagram/token', methods=['POST'])
+def instagram_save_token():
+    """Guardar token manualmente (desde el panel de Meta for Developers)"""
+    d = request.json
+    token = d.get('access_token', '').strip()
+    if not token:
+        return jsonify({'ok': False, 'error': 'Token vacío'})
+    # Verificar token obteniendo perfil
+    profile, err = _ig_api('me?fields=id,name,username', token)
+    if err:
+        return jsonify({'ok': False, 'error': f'Token inválido: {err}'})
+    ig_id    = profile.get('id', '')
+    username = profile.get('username', ig_id)
+    name     = profile.get('name', '')
+    print(f'IG manual token — @{username} id={ig_id}')
+    conn = get_db()
+    conn.execute('INSERT OR REPLACE INTO social_tokens VALUES (?,?,?,?,?,?)',
+        ('instagram', token, '', '', ig_id,
+         json.dumps({'username': username, 'name': name})))
+    conn.commit(); conn.close()
+    return jsonify({'ok': True, 'username': username, 'ig_id': ig_id})
+
+@app.route('/api/social/auth/instagram/verify', methods=['GET'])
+def instagram_verify():
+    """Verificar que el token guardado sigue funcionando"""
+    conn = get_db()
+    tok = conn.execute("SELECT * FROM social_tokens WHERE platform='instagram'").fetchone()
+    conn.close()
+    if not tok:
+        return jsonify({'ok': False, 'error': 'No hay token guardado'})
+    profile, err = _ig_api(f'{tok["user_id"]}?fields=id,name,username', tok['access_token'])
+    if err:
+        return jsonify({'ok': False, 'error': err})
+    return jsonify({'ok': True, 'username': profile.get('username'), 'name': profile.get('name'), 'ig_id': profile.get('id')})
+
+# ── INSTAGRAM DMs ────────────────────────────────────────────────
+@app.route('/api/social/instagram/dm', methods=['POST'])
+def instagram_send_dm():
+    """Enviar DM a un usuario de Instagram (requiere instagram_business_manage_messages)"""
+    d = request.json
+    recipient_username = d.get('username', '').lstrip('@')
+    recipient_ig_id    = d.get('ig_id', '')
+    message_text       = d.get('message', '')
+    if not message_text:
+        return jsonify({'ok': False, 'error': 'Mensaje vacío'})
+    conn = get_db()
+    tok = conn.execute("SELECT * FROM social_tokens WHERE platform='instagram'").fetchone()
+    conn.close()
+    if not tok:
+        return jsonify({'ok': False, 'error': 'Instagram no conectado. Configurá el token primero.'})
+    token  = tok['access_token']
+    ig_id  = tok['user_id']
+    # Si tenemos username pero no ig_id del destinatario, buscarlo
+    if not recipient_ig_id and recipient_username:
+        search, err = _ig_api(
+            f'{ig_id}?fields=business_discovery.fields(id,username)'
+            f'&username_to_lookup={recipient_username}', token)
+        if err:
+            return jsonify({'ok': False, 'error': f'No se pudo encontrar @{recipient_username}: {err}'})
+        recipient_ig_id = (search.get('business_discovery') or {}).get('id', '')
+        if not recipient_ig_id:
+            return jsonify({'ok': False, 'error': f'Usuario @{recipient_username} no encontrado o no es cuenta profesional'})
+    if not recipient_ig_id:
+        return jsonify({'ok': False, 'error': 'Necesitás especificar username o ig_id del destinatario'})
+    # Enviar mensaje
+    body = {'recipient': {'id': recipient_ig_id}, 'message': {'text': message_text}}
+    result, err = _ig_api(f'{ig_id}/messages', token, method='POST', body=body)
+    if err:
+        return jsonify({'ok': False, 'error': err})
+    msg_id = result.get('message_id', result.get('id', ''))
+    print(f'IG DM sent to {recipient_ig_id} — msg_id={msg_id}')
+    return jsonify({'ok': True, 'message_id': msg_id, 'recipient_ig_id': recipient_ig_id})
+
+@app.route('/api/social/instagram/conversations', methods=['GET'])
+def instagram_conversations():
+    """Listar conversaciones/DMs activos"""
+    conn = get_db()
+    tok = conn.execute("SELECT * FROM social_tokens WHERE platform='instagram'").fetchone()
+    conn.close()
+    if not tok:
+        return jsonify({'ok': False, 'error': 'Instagram no conectado'})
+    token = tok['access_token']; ig_id = tok['user_id']
+    data, err = _ig_api(
+        f'{ig_id}/conversations?platform=instagram&fields=id,participants,updated_time', token)
+    if err:
+        return jsonify({'ok': False, 'error': err})
+    return jsonify({'ok': True, 'conversations': data.get('data', [])})
 
 @app.route('/')
 def index(): return send_file('index.html')
