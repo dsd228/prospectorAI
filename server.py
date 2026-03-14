@@ -245,6 +245,30 @@ def get_stats():
         'stages':[dict(r) for r in stages],'top_prospects':[dict(r) for r in top],
         'recent_activity':[dict(r) for r in recent],'posts_total':pp,'posts_published':pub,'posts_scheduled':sch})
 
+@app.route('/api/ai/generate', methods=['POST'])
+def ai_generate():
+    """Proxy para Ollama — el frontend llama a este endpoint en vez de localhost:11434"""
+    d = request.json
+    prompt = d.get('prompt', '')
+    if not prompt:
+        return jsonify({'ok': False, 'error': 'Prompt vacío'})
+    cfg = get_cfg()
+    ol_url  = cfg.get('ollama_url', 'http://localhost:11434')
+    ol_model = cfg.get('model', 'deepseek-r1:latest')
+    body = json.dumps({'model': ol_model, 'prompt': prompt, 'stream': False}).encode()
+    try:
+        req = urllib.request.Request(
+            ol_url + '/api/generate',
+            data=body,
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        with urllib.request.urlopen(req, timeout=60) as r:
+            res = json.loads(r.read())
+        return jsonify({'ok': True, 'response': res.get('response', '')})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
 @app.route('/api/activities/<pid>')
 def get_activities(pid):
     conn=get_db()

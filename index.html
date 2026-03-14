@@ -708,6 +708,16 @@ async function checkOllama(){
 }
 
 async function callOllama(prompt){
+  // Si estamos en producción (Render), usamos el proxy del servidor para evitar CORS con localhost:11434
+  const isLocal = location.hostname==='localhost'||location.hostname==='127.0.0.1';
+  if(!isLocal){
+    const r=await fetch(API+'/ai/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    if(!r.ok)throw new Error('AI error '+r.status);
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error||'Error IA');
+    return d.response;
+  }
+  // Local: llamada directa a Ollama
   const url = (cfg.ollama_url||OL)+'/api/generate';
   const model = cfg.model||'deepseek-r1:latest';
   const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,prompt,stream:false,format:'json'})});
