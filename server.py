@@ -247,25 +247,41 @@ def get_stats():
 
 @app.route('/api/ai/generate', methods=['POST'])
 def ai_generate():
-    """Proxy para Ollama — el frontend llama a este endpoint en vez de localhost:11434"""
+    """Genera texto con Claude API (Anthropic)"""
     d = request.json
     prompt = d.get('prompt', '')
     if not prompt:
         return jsonify({'ok': False, 'error': 'Prompt vacío'})
-    cfg = get_cfg()
-    ol_url  = cfg.get('ollama_url', 'http://localhost:11434')
-    ol_model = cfg.get('model', 'deepseek-r1:latest')
-    body = json.dumps({'model': ol_model, 'prompt': prompt, 'stream': False}).encode()
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        cfg = get_cfg()
+        api_key = cfg.get('anthropic_api_key', '')
+    if not api_key:
+        return jsonify({'ok': False, 'error': 'Configurá ANTHROPIC_API_KEY en Render → Environment'})
+    body = json.dumps({
+        'model': 'claude-haiku-4-5-20251001',
+        'max_tokens': 1024,
+        'messages': [{'role': 'user', 'content': prompt}]
+    }).encode()
     try:
         req = urllib.request.Request(
-            ol_url + '/api/generate',
+            'https://api.anthropic.com/v1/messages',
             data=body,
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01'
+            },
             method='POST'
         )
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with urllib.request.urlopen(req, timeout=30) as r:
             res = json.loads(r.read())
-        return jsonify({'ok': True, 'response': res.get('response', '')})
+        text = res.get('content', [{}])[0].get('text', '')
+        return jsonify({'ok': True, 'response': text})
+    except urllib.error.HTTPError as e:
+        err = e.read().decode('utf-8')
+        print(f'Claude API error: {err}')
+        return jsonify({'ok': False, 'error': err})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
