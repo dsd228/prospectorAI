@@ -362,7 +362,7 @@ body{background:var(--black);color:var(--white);font-family:var(--font);min-heig
     <div class="panel" id="panel-crm">
       <div class="sh" style="display:flex;justify-content:space-between;align-items:flex-end;">
         <div><div class="sh-lbl">CRM</div><h1 class="sh-title">Tus<br><em>prospectos.</em></h1></div>
-        <div class="brow"><button class="btn-g" onclick="go('reports')">📊 Reportes</button><a href="http://localhost:5000/api/export/csv" class="btn-g" style="text-decoration:none;">↓ CSV</a><button class="btn" onclick="showAddForm()"><span>+ Agregar</span></button></div>
+        <div class="brow"><button class="btn-g" onclick="go('reports')">📊 Reportes</button><a href="/api/export/csv" class="btn-g" style="text-decoration:none;">↓ CSV</a><button class="btn" onclick="showAddForm()"><span>+ Agregar</span></button></div>
       </div>
       <div id="add-form" style="display:none;background:var(--black-2);border:1px solid rgba(242,170,191,.1);padding:20px;margin-bottom:16px;">
         <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Nuevo prospecto</div>
@@ -586,7 +586,7 @@ body{background:var(--black);color:var(--white);font-family:var(--font);min-heig
       </div>
       <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;">
         <div style="font-family:var(--font-t);font-weight:700;font-size:13px;text-transform:uppercase;margin-bottom:8px;">Exportar CSV para HubSpot</div>
-        <a href="http://localhost:5000/api/export/csv" class="btn-g" style="text-decoration:none;display:inline-block;">↓ Descargar CSV</a>
+        <a href="/api/export/csv" class="btn-g" style="text-decoration:none;display:inline-block;">↓ Descargar CSV</a>
       </div>
     </div>
 
@@ -644,7 +644,7 @@ body{background:var(--black);color:var(--white);font-family:var(--font);min-heig
 </div>
 
 <script>
-const API = 'http://localhost:5000/api';
+const API = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:5000/api' : '/api';
 const OL  = 'http://localhost:11434';
 let cfg = {};
 let _scrLeads = [];
