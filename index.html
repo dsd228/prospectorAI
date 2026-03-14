@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ProspectorAI — DiazUX Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --black:#080808;--black-2:#0f0f0f;--black-3:#161616;--black-4:#1c1c1c;
+  --pink:#F2AABF;--pink-dim:rgba(242,170,191,0.1);
+  --white:#F5F0EE;--gray:#777;--gray-2:#444;--gray-3:#2a2a2a;
+  --green:#4ade80;--amber:#fbbf24;--red:#f87171;--blue:#60a5fa;
+  --font:'Barlow',sans-serif;--font-t:'Barlow Condensed',sans-serif;--font-m:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--black);color:var(--white);font-family:var(--font);min-height:100vh;cursor:none;overflow-x:hidden;display:flex;}
+#cur{position:fixed;width:8px;height:8px;background:var(--pink);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+#ring{position:fixed;width:32px;height:32px;border:1px solid rgba(242,170,191,.35);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s;}
+#cur.big{width:0;height:0;}
+#ring.big{width:52px;height:52px;border-color:rgba(242,170,191,.7);}
+
+/* SIDEBAR */
+.sb{width:220px;min-height:100vh;background:var(--black-2);border-right:1px solid rgba(242,170,191,.07);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto;}
+.sb-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(242,170,191,.07);}
+.sb-logo-t{font-family:var(--font-t);font-weight:900;font-size:18px;text-transform:uppercase;letter-spacing:.05em;}
+.sb-logo-t span{color:var(--pink);}
+.sb-logo-s{font-size:9px;color:var(--gray);letter-spacing:.2em;text-transform:uppercase;margin-top:2px;font-family:var(--font-t);font-weight:600;}
+.sb-sec{padding:18px 12px 6px;font-family:var(--font-t);font-weight:700;font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--gray-2);}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 12px;font-family:var(--font-t);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);cursor:none;transition:color .2s,background .2s;border-radius:3px;margin:1px 4px;}
+.ni:hover,.ni.active{color:var(--white);background:var(--black-3);}
+.ni.active{color:var(--pink);border-left:2px solid var(--pink);padding-left:10px;}
+.ni-ic{font-size:13px;width:16px;text-align:center;}
+.sb-bot{margin-top:auto;padding:14px;border-top:1px solid rgba(242,170,191,.07);}
+.ol-s{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--gray);font-family:var(--font-t);font-weight:600;letter-spacing:.08em;}
+.ol-dot{width:7px;height:7px;border-radius:50%;background:var(--gray-2);flex-shrink:0;}
+.ol-dot.on{background:var(--green);box-shadow:0 0 6px rgba(74,222,128,.5);}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;}
+.topbar{height:54px;background:var(--black-2);border-bottom:1px solid rgba(242,170,191,.07);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:40;}
+.tb-t{font-family:var(--font-t);font-weight:900;font-size:15px;text-transform:uppercase;letter-spacing:.05em;}
+.tb-r{display:flex;gap:10px;align-items:center;}
+.pill{font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+.pill-pink{background:var(--pink-dim);color:var(--pink);border:1px solid rgba(242,170,191,.2);}
+.pill-green{background:rgba(74,222,128,.08);color:var(--green);border:1px solid rgba(74,222,128,.2);}
+.pill-blue{background:rgba(96,165,250,.08);color:var(--blue);border:1px solid rgba(96,165,250,.2);}
+
+.content{padding:28px;flex:1;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* SECTION */
+.sh{margin-bottom:24px;}
+.sh-lbl{font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--pink);display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sh-lbl::before{content:'';width:18px;height:1px;background:var(--pink);}
+.sh-title{font-family:var(--font-t);font-weight:900;font-size:clamp(26px,3vw,40px);text-transform:uppercase;line-height:.95;}
+.sh-title em{font-style:italic;color:var(--pink);}
+.sh-sub{font-size:13px;color:var(--gray);margin-top:6px;line-height:1.6;max-width:540px;}
+
+/* STATS GRID */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:rgba(242,170,191,.06);margin-bottom:24px;}
+.sc{background:var(--black-2);padding:18px 20px;}
+.sc-v{font-family:var(--font-t);font-weight:900;font-size:32px;color:var(--pink);line-height:1;letter-spacing:-.02em;}
+.sc-l{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:3px;font-family:var(--font-t);font-weight:600;}
+
+/* FORM */
+.fg{display:grid;gap:14px;margin-bottom:16px;}
+.fg2{grid-template-columns:1fr 1fr;}
+.fg3{grid-template-columns:1fr 1fr 1fr;}
+.fg4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.fld label{display:block;font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gray);margin-bottom:6px;}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--black-3);border:1px solid rgba(242,170,191,.1);color:var(--white);font-family:var(--font);font-size:13px;padding:11px 14px;outline:none;transition:border-color .2s;}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:rgba(242,170,191,.35);}
+.fld input::placeholder,.fld textarea::placeholder{color:var(--gray-2);}
+.fld select{cursor:none;}
+.fld select option{background:var(--black-3);}
+.fld textarea{resize:vertical;min-height:72px;line-height:1.6;}
+
+/* BTN */
+.btn{font-family:var(--font-t);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--black);background:var(--pink);border:none;padding:12px 28px;cursor:none;transition:background .2s;position:relative;overflow:hidden;}
+.btn::after{content:'';position:absolute;inset:0;background:var(--white);transform:translateX(-101%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.btn:hover::after{transform:translateX(0);}
+.btn span{position:relative;z-index:1;}
+.btn:disabled{opacity:.35;pointer-events:none;}
+.btn-g{font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--pink);background:transparent;border:1px solid rgba(242,170,191,.2);padding:9px 18px;cursor:none;transition:background .2s;}
+.btn-g:hover{background:var(--pink-dim);}
+.btn-s{font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--pink);background:transparent;border:1px solid rgba(242,170,191,.15);padding:6px 12px;cursor:none;transition:background .2s;}
+.btn-s:hover{background:var(--pink-dim);}
+.btn-r{color:var(--red);border-color:rgba(248,113,113,.2);}
+.btn-r:hover{background:rgba(248,113,113,.07);}
+.brow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+/* LOADING */
+.ld{display:none;align-items:center;gap:8px;font-size:11px;color:var(--gray);font-family:var(--font-t);font-weight:600;letter-spacing:.1em;text-transform:uppercase;}
+.ld.on{display:flex;}
+.sp{width:13px;height:13px;border:2px solid rgba(242,170,191,.15);border-top-color:var(--pink);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* CARDS */
+.rc{background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px 22px;margin-bottom:6px;transition:border-color .2s;}
+.rc:hover{border-color:rgba(242,170,191,.2);}
+.rc-top{display:flex;justify-content:space-between;gap:12px;}
+.rc-email{font-family:var(--font-t);font-weight:900;font-size:18px;letter-spacing:-.01em;}
+.rc-conf{text-align:right;flex-shrink:0;}
+.rc-cv{font-family:var(--font-t);font-weight:900;font-size:26px;color:var(--pink);}
+.rc-cl{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;}
+.rc-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;}
+.tag{font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border:1px solid;}
+.tv{color:var(--green);border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.05);}
+.tw{color:var(--amber);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.05);}
+.ti{color:var(--red);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.05);}
+.tg{color:var(--gray);border-color:rgba(136,136,136,.2);}
+.tb{color:var(--blue);border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.05);}
+.rc-act{display:flex;gap:6px;margin-top:10px;}
+
+/* VERIFY */
+.vb{background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:24px;margin-top:18px;}
+.vb-h{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.vb-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.vb-sc{font-family:var(--font-t);font-weight:900;font-size:48px;line-height:1;}
+.vb-vd{font-family:var(--font-t);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.vb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(242,170,191,.06);}
+.vb-item{background:var(--black-2);padding:14px;text-align:center;}
+.vb-iv{font-family:var(--font-t);font-weight:700;font-size:13px;margin-bottom:3px;}
+.vb-il{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;}
+.vb-rec{margin-top:14px;padding:12px 14px;background:var(--black-3);border-left:2px solid var(--pink);font-size:13px;color:var(--gray);line-height:1.6;}
+
+/* CRM TABLE */
+.ct{width:100%;border-collapse:collapse;}
+.ct th{text-align:left;font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);padding:9px 14px;border-bottom:1px solid rgba(242,170,191,.08);background:var(--black-2);white-space:nowrap;}
+.ct td{padding:10px 14px;border-bottom:1px solid rgba(242,170,191,.04);font-size:12px;vertical-align:middle;}
+.ct tr:hover td{background:rgba(242,170,191,.02);}
+.sp-sel{background:var(--black-3);border:1px solid rgba(242,170,191,.1);color:var(--white);font-size:10px;padding:4px 8px;font-family:var(--font-t);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:none;width:100%;}
+
+/* SCORE BAR */
+.score-bar{height:4px;background:var(--black-3);border-radius:2px;margin-top:4px;}
+.score-fill{height:100%;border-radius:2px;background:var(--pink);transition:width .3s;}
+
+/* PIPELINE */
+.pipeline{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(242,170,191,.06);margin-bottom:24px;}
+.pl-col{background:var(--black-2);padding:14px 12px;}
+.pl-title{font-family:var(--font-t);font-weight:700;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gray);margin-bottom:10px;}
+.pl-count{font-family:var(--font-t);font-weight:900;font-size:24px;color:var(--pink);}
+.pl-label{font-size:10px;color:var(--gray);margin-top:2px;}
+
+/* AUDIT */
+.aud-sec{background:var(--black-2);border:1px solid rgba(242,170,191,.08);margin-bottom:6px;}
+.aud-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+.aud-title{font-family:var(--font-t);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.05em;}
+.aud-sc{font-family:var(--font-t);font-weight:900;font-size:20px;}
+.aud-body{padding:0 18px 16px;border-top:1px solid rgba(242,170,191,.06);}
+.aud-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(242,170,191,.04);}
+.aud-item:last-child{border-bottom:none;}
+.ai-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.aok{background:var(--green);}
+.awk{background:var(--amber);}
+.afl{background:var(--red);}
+.ai-t{font-size:13px;font-weight:500;margin-bottom:2px;}
+.ai-d{font-size:12px;color:var(--gray);line-height:1.5;}
+
+/* EMAIL PANEL */
+.email-card{background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px 22px;margin-bottom:8px;}
+.ec-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.ec-subject{font-family:var(--font-t);font-weight:700;font-size:14px;text-transform:uppercase;}
+.ec-date{font-size:11px;color:var(--gray);}
+.ec-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.ec-body{font-size:12px;color:var(--gray);line-height:1.6;white-space:pre-wrap;max-height:100px;overflow:hidden;}
+
+/* SEQ TIMELINE */
+.sq-tl{position:relative;padding-left:28px;}
+.sq-tl::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:1px;background:rgba(242,170,191,.1);}
+.sq-step{position:relative;margin-bottom:18px;}
+.sq-dot{position:absolute;left:-22px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--gray-2);border:2px solid var(--black-2);}
+.sq-dot.done{background:var(--green);}
+.sq-dot.now{background:var(--pink);}
+.sq-card{background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:14px 18px;}
+.sq-day{font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:5px;}
+.sq-sub{font-family:var(--font-t);font-weight:700;font-size:14px;text-transform:uppercase;margin-bottom:4px;}
+.sq-prev{font-size:12px;color:var(--gray);line-height:1.5;white-space:pre-wrap;max-height:90px;overflow:hidden;}
+
+/* CHART */
+.chart-wrap{background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-bottom:16px;}
+.chart-title{font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;}
+
+/* SEND EMAIL MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;}
+.modal-bg.on{display:flex;}
+.modal{background:var(--black-2);border:1px solid rgba(242,170,191,.15);padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--font-t);font-weight:900;font-size:20px;text-transform:uppercase;color:var(--pink);margin-bottom:20px;}
+
+/* PROSPECT DETAIL */
+.detail-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;}
+.detail-bg.on{display:flex;}
+.detail{background:var(--black-2);border:1px solid rgba(242,170,191,.15);padding:28px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--black-3);border:1px solid rgba(242,170,191,.2);color:var(--white);font-size:12px;padding:10px 22px;z-index:9000;transition:transform .3s;font-family:var(--font-t);font-weight:600;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;}
+.toast.on{transform:translateX(-50%) translateY(0);}
+
+/* ERR */
+.err{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);color:var(--red);padding:10px 14px;font-size:12px;margin-top:10px;display:none;}
+.err.on{display:block;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--gray);}
+.empty-i{font-size:28px;margin-bottom:10px;opacity:.2;}
+.empty-t{font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.1em;}
+
+/* FI */
+.fi{opacity:0;transform:translateY(10px);animation:fi .35s cubic-bezier(.4,0,.2,1) forwards;}
+@keyframes fi{to{opacity:1;transform:translateY(0);}}
+
+@media(max-width:900px){.sb{display:none;}.main{margin-left:0;}.fg3,.fg4{grid-template-columns:1fr 1fr;}.vb-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="ring"></div>
+<div class="toast" id="toast"></div>
+
+<!-- SEND EMAIL MODAL -->
+<div class="modal-bg" id="send-modal">
+  <div class="modal">
+    <div class="modal-title">✉ Enviar Email</div>
+    <input type="hidden" id="m-pid"/>
+    <input type="hidden" id="m-seq"/>
+    <div class="fg fg2">
+      <div class="fld"><label>Para</label><input id="m-to" type="email"/></div>
+      <div class="fld"><label>Secuencia #</label>
+        <select id="m-seqn"><option value="1">Email 1 — Día 0</option><option value="2">Email 2 — Día 3</option><option value="3">Email 3 — Día 7</option></select>
+      </div>
+    </div>
+    <div class="fld" style="margin-bottom:12px;"><label>Asunto</label><input id="m-subj"/></div>
+    <div class="fld" style="margin-bottom:16px;"><label>Cuerpo</label><textarea id="m-body" style="min-height:160px;"></textarea></div>
+    <div class="brow">
+      <button class="btn" onclick="sendEmailNow()"><span>Enviar ahora</span></button>
+      <div class="ld" id="ld-send"><div class="sp"></div>Enviando...</div>
+      <button class="btn-g" onclick="closeModal('send-modal')">Cancelar</button>
+    </div>
+    <div class="err" id="err-send"></div>
+  </div>
+</div>
+
+<!-- PROSPECT DETAIL MODAL -->
+<div class="detail-bg" id="detail-modal">
+  <div class="detail">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" id="dm-title">Detalle</div>
+      <button class="btn-s" onclick="closeModal('detail-modal')">Cerrar</button>
+    </div>
+    <div id="dm-content"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-t">Diaz<span>UX</span></div>
+    <div class="sb-logo-s">Prospector Pro</div>
+  </div>
+  <div class="sb-sec">Herramientas</div>
+  <div class="ni active" onclick="go('dashboard')"><span class="ni-ic">◈</span>Dashboard</div>
+  <div class="ni" onclick="go('finder')"><span class="ni-ic">◎</span>Email Finder</div>
+  <div class="ni" onclick="go('verify')"><span class="ni-ic">✓</span>Verificador</div>
+  <div class="ni" onclick="go('scraper')"><span class="ni-ic">⊡</span>Scraper</div>
+  <div class="ni" onclick="go('audit')"><span class="ni-ic">⊛</span>Auditoría Web</div>
+  <div class="sb-sec">CRM</div>
+  <div class="ni" onclick="go('crm')"><span class="ni-ic">◷</span>Prospectos</div>
+  <div class="ni" onclick="go('pipeline')"><span class="ni-ic">⇒</span>Pipeline</div>
+  <div class="ni" onclick="go('sequences')"><span class="ni-ic">✉</span>Secuencias</div>
+  <div class="ni" onclick="go('reports')"><span class="ni-ic">▦</span>Reportes</div>
+  <div class="sb-sec">Config</div>
+  <div class="ni" onclick="go('social')"><span class="ni-ic">◉</span>Redes Sociales</div>
+  <div class="ni" onclick="go('hubspot')"><span class="ni-ic">⊕</span>HubSpot</div>
+  <div class="ni" onclick="go('settings')"><span class="ni-ic">◌</span>Ajustes</div>
+  <div class="sb-bot">
+    <div class="ol-s"><div class="ol-dot" id="ol-dot"></div><span id="ol-txt">Conectando...</span></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-t" id="tb-t">Dashboard</div>
+    <div class="tb-r">
+      <span class="pill pill-pink" id="tb-total">0 prospectos</span>
+      <span class="pill pill-green" id="tb-rate">0% respuesta</span>
+      <span class="pill pill-blue" id="tb-open">0% aperturas</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="sh"><div class="sh-lbl">Resumen</div><h1 class="sh-title">Pipeline de<br><em>hoy.</em></h1></div>
+      <div class="sg" id="dash-sg"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="chart-wrap"><div class="chart-title">Prospectos por estado</div><canvas id="chart-status" height="200"></canvas></div>
+        <div class="chart-wrap"><div class="chart-title">Top prospectos por score</div><div id="dash-top"></div></div>
+      </div>
+      <div style="margin-top:16px;background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px;">
+        <div class="chart-title">Actividad reciente</div>
+        <div id="dash-activity"></div>
+      </div>
+    </div>
+
+    <!-- FINDER -->
+    <div class="panel" id="panel-finder">
+      <div class="sh"><div class="sh-lbl">Email Finder</div><h1 class="sh-title">Encontrá el email<br><em>correcto.</em></h1><p class="sh-sub">Deepseek infiere los patrones más probables para cada dominio.</p></div>
+      <div style="display:flex;gap:1px;background:rgba(242,170,191,.06);margin-bottom:22px;max-width:400px;">
+        <button class="btn-s" id="ft-d" onclick="ftab('d')" style="flex:1;padding:11px;">Por Dominio</button>
+        <button class="btn-s" id="ft-n" onclick="ftab('n')" style="flex:1;padding:11px;">Por Nombre</button>
+      </div>
+      <div id="fp-d">
+        <div class="fg fg2"><div class="fld"><label>Dominio</label><input id="f-dom" placeholder="baraandco.com.ar"/></div><div class="fld"><label>Empresa (opcional)</label><input id="f-co" placeholder="Bara & Co"/></div></div>
+        <div class="brow"><button class="btn" onclick="findDomain()"><span>Buscar emails</span></button><div class="ld" id="ld-fd"><div class="sp"></div>Consultando Deepseek...</div></div>
+        <div class="err" id="err-fd"></div><div id="res-fd" style="margin-top:20px;"></div>
+      </div>
+      <div id="fp-n" style="display:none;">
+        <div class="fg fg3"><div class="fld"><label>Nombre</label><input id="f-fn" placeholder="Valentina"/></div><div class="fld"><label>Apellido</label><input id="f-ln" placeholder="García"/></div><div class="fld"><label>Dominio</label><input id="f-nd" placeholder="marca.com.ar"/></div></div>
+        <div class="brow"><button class="btn" onclick="findName()"><span>Encontrar email</span></button><div class="ld" id="ld-fn"><div class="sp"></div>Generando variaciones...</div></div>
+        <div class="err" id="err-fn"></div><div id="res-fn" style="margin-top:20px;"></div>
+      </div>
+    </div>
+
+    <!-- VERIFY -->
+    <div class="panel" id="panel-verify">
+      <div class="sh"><div class="sh-lbl">Verificador SMTP</div><h1 class="sh-title">Verificá antes<br><em>de mandar.</em></h1><p class="sh-sub">Verificación SMTP real + análisis Deepseek.</p></div>
+      <div class="fg" style="max-width:440px;"><div class="fld"><label>Email</label><input id="v-em" type="email" placeholder="valentina@marca.com.ar"/></div></div>
+      <div class="brow"><button class="btn" onclick="verifyEm()"><span>Verificar</span></button><div class="ld" id="ld-v"><div class="sp"></div>Verificando SMTP...</div></div>
+      <div class="err" id="err-v"></div><div id="res-v"></div>
+    </div>
+
+    <!-- SCRAPER -->
+    <div class="panel" id="panel-scraper">
+      <div class="sh"><div class="sh-lbl">Scraper</div><h1 class="sh-title">Encontrá<br><em>prospectos.</em></h1><p class="sh-sub">Deepseek genera listas de ecommerce argentinos por rubro.</p></div>
+      <div class="fg fg3">
+        <div class="fld"><label>Rubro</label><select id="sc-ind"><option value="moda indumentaria mujer">Moda mujer</option><option value="moda hombre streetwear">Moda hombre</option><option value="calzado zapatillas">Calzado</option><option value="accesorios bijouterie">Accesorios</option><option value="cosmética belleza">Cosmética</option><option value="hogar decoración">Hogar</option><option value="deportes fitness">Deportes</option></select></div>
+        <div class="fld"><label>País</label><select id="sc-cn"><option>Argentina</option><option>España</option><option>México</option></select></div>
+        <div class="fld"><label>Tamaño</label><select id="sc-sz"><option value="pequeña marca independiente">Pequeña</option><option value="mediana empresa establecida">Mediana</option><option value="empresa grande">Grande</option></select></div>
+      </div>
+      <div class="brow"><button class="btn" onclick="scrape()"><span>Generar lista</span></button><div class="ld" id="ld-sc"><div class="sp"></div>Generando con Deepseek...</div></div>
+      <div class="err" id="err-sc"></div><div id="res-sc" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- AUDIT -->
+    <div class="panel" id="panel-audit">
+      <div class="sh"><div class="sh-lbl">Auditoría Web</div><h1 class="sh-title">Auditá el sitio<br><em>del prospecto.</em></h1><p class="sh-sub">Generá el diagnóstico y el hook perfecto para el email.</p></div>
+      <div class="fg fg2">
+        <div class="fld"><label>URL</label><input id="au-url" placeholder="https://marca.com.ar"/></div>
+        <div class="fld"><label>Tipo</label><select id="au-tp"><option>Ecommerce de moda</option><option>Ecommerce general</option><option>Startup tech</option><option>Pyme con sitio web</option></select></div>
+      </div>
+      <div class="brow"><button class="btn" onclick="audit()"><span>Auditar</span></button><div class="ld" id="ld-au"><div class="sp"></div>Analizando con Deepseek...</div></div>
+      <div class="err" id="err-au"></div><div id="res-au" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- CRM -->
+    <div class="panel" id="panel-crm">
+      <div class="sh" style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <div><div class="sh-lbl">CRM</div><h1 class="sh-title">Tus<br><em>prospectos.</em></h1></div>
+        <div class="brow"><button class="btn-g" onclick="go('reports')">📊 Reportes</button><a href="http://localhost:5000/api/export/csv" class="btn-g" style="text-decoration:none;">↓ CSV</a><button class="btn" onclick="showAddForm()"><span>+ Agregar</span></button></div>
+      </div>
+      <div id="add-form" style="display:none;background:var(--black-2);border:1px solid rgba(242,170,191,.1);padding:20px;margin-bottom:16px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Nuevo prospecto</div>
+        <div class="fg fg4"><div class="fld"><label>Marca</label><input id="np-br"/></div><div class="fld"><label>Contacto</label><input id="np-co"/></div><div class="fld"><label>Email</label><input id="np-em"/></div><div class="fld"><label>URL</label><input id="np-ur"/></div></div>
+        <div class="fg fg2"><div class="fld"><label>Problema detectado</label><input id="np-pr"/></div><div class="fld"><label>Fuente</label><input id="np-so" placeholder="Instagram, Tiendanube..."/></div></div>
+        <div class="fg fg2"><div class="fld"><label>Valor del deal ($)</label><input id="np-dv" type="number" placeholder="0"/></div><div class="fld"><label>Etapa</label><select id="np-ds"><option>Lead</option><option>Contactado</option><option>Propuesta</option><option>Negociación</option><option>Cerrado</option></select></div></div>
+        <div class="brow"><button class="btn" onclick="addProspect()"><span>Guardar</span></button><button class="btn-g" onclick="document.getElementById('add-form').style.display='none'">Cancelar</button></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn-s" onclick="loadCRM('all')">Todos</button>
+        <button class="btn-s" onclick="loadCRM('Sin contactar')">Sin contactar</button>
+        <button class="btn-s" onclick="loadCRM('Email 1 enviado')">Email 1</button>
+        <button class="btn-s" onclick="loadCRM('Respondió')">Respondieron</button>
+        <button class="btn-s" onclick="loadCRM('Reunión agendada')">Reuniones</button>
+        <button class="btn-s" onclick="loadCRM('Cliente')">Clientes</button>
+      </div>
+      <div id="crm-wrap" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="panel" id="panel-pipeline">
+      <div class="sh"><div class="sh-lbl">Pipeline</div><h1 class="sh-title">Estado de<br><em>ventas.</em></h1></div>
+      <div class="pipeline" id="pipeline-cols"></div>
+      <div class="chart-wrap"><div class="chart-title">Valor del pipeline por etapa</div><canvas id="chart-pipeline" height="120"></canvas></div>
+    </div>
+
+    <!-- SEQUENCES -->
+    <div class="panel" id="panel-sequences">
+      <div class="sh"><div class="sh-lbl">Secuencias</div><h1 class="sh-title">Emails<br><em>automáticos.</em></h1></div>
+      <div class="fg fg2">
+        <div class="fld"><label>Marca</label><input id="sq-br" placeholder="Bara & Co"/></div>
+        <div class="fld"><label>Problema detectado</label><input id="sq-pr" placeholder="78% abandono de carrito"/></div>
+      </div>
+      <div class="fg fg2">
+        <div class="fld"><label>Nombre del contacto</label><input id="sq-cn" placeholder="Valentina"/></div>
+        <div class="fld"><label>Tu nombre</label><input id="sq-sn" value="David Díaz"/></div>
+      </div>
+      <div class="brow"><button class="btn" onclick="genSeq()"><span>Generar secuencia</span></button><div class="ld" id="ld-sq"><div class="sp"></div>Redactando...</div></div>
+      <div class="err" id="err-sq"></div><div id="res-sq" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="panel" id="panel-reports">
+      <div class="sh"><div class="sh-lbl">Reportes</div><h1 class="sh-title">Analytics de<br><em>outreach.</em></h1></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="chart-wrap"><div class="chart-title">Tasa de apertura de emails</div><canvas id="chart-opens" height="200"></canvas></div>
+        <div class="chart-wrap"><div class="chart-title">Conversión del funnel</div><canvas id="chart-funnel" height="200"></canvas></div>
+      </div>
+      <div class="chart-wrap"><div class="chart-title">Emails abiertos recientemente</div><div id="report-opens"></div></div>
+    </div>
+
+
+    <!-- SOCIAL MEDIA -->
+    <div class="panel" id="panel-social">
+      <div class="sh"><div class="sh-lbl">Redes Sociales</div><h1 class="sh-title">Publicá en todas<br><em>a la vez.</em></h1><p class="sh-sub">Generá contenido con Deepseek, subí tu imagen y publicá en LinkedIn, Instagram y TikTok al mismo tiempo — o programalo para después.</p></div>
+
+      <!-- CONEXIONES -->
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-bottom:16px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Estado de conexiones</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(242,170,191,.06);">
+          <div style="background:var(--black-2);padding:16px;text-align:center;" id="conn-linkedin">
+            <div style="font-size:24px;margin-bottom:6px;">in</div>
+            <div style="font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:8px;">LinkedIn</div>
+            <div id="li-status" style="font-size:11px;color:var(--gray);margin-bottom:10px;">No conectado</div>
+            <button class="btn-s" onclick="connectLinkedIn()">Conectar →</button>
+          </div>
+          <div style="background:var(--black-2);padding:16px;text-align:center;" id="conn-instagram">
+            <div style="font-size:24px;margin-bottom:6px;">ig</div>
+            <div style="font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:8px;">Instagram</div>
+            <div id="ig-status" style="font-size:11px;color:var(--gray);margin-bottom:10px;">No conectado</div>
+            <button class="btn-s" onclick="connectInstagram()">Conectar →</button>
+          </div>
+          <div style="background:var(--black-2);padding:16px;text-align:center;" id="conn-tiktok">
+            <div style="font-size:24px;margin-bottom:6px;">tt</div>
+            <div style="font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:8px;">TikTok</div>
+            <div id="tt-status" style="font-size:11px;color:var(--gray);margin-bottom:10px;">Requiere aprobación</div>
+            <button class="btn-s" onclick="saveTikTokToken()">Token manual</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREAR PUBLICACIÓN -->
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-bottom:16px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Nueva publicación</div>
+
+        <!-- PLATAFORMAS -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="btn-s" id="plt-li" onclick="togglePlatform('linkedin')" style="color:var(--pink);">✓ LinkedIn</button>
+          <button class="btn-s" id="plt-ig" onclick="togglePlatform('instagram')" style="color:var(--pink);">✓ Instagram</button>
+          <button class="btn-s" id="plt-tt" onclick="togglePlatform('tiktok')" style="color:var(--pink);">✓ TikTok</button>
+        </div>
+
+        <!-- GENERAR CON IA -->
+        <div style="background:var(--black-3);border:1px solid rgba(242,170,191,.08);padding:14px;margin-bottom:14px;">
+          <div style="font-size:11px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">✦ Generar con Deepseek</div>
+          <div class="fg fg3">
+            <div class="fld"><label>Tema</label>
+              <select id="soc-topic">
+                <option value="caso_bara">Caso Bara &amp; Co (+312%)</option>
+                <option value="tip_ux">Tip de UX/UI</option>
+                <option value="error_ecommerce">Error común en ecommerce</option>
+                <option value="antes_despues">Antes/Después de proyecto</option>
+                <option value="proceso">Cómo trabajamos</option>
+                <option value="custom">Tema personalizado</option>
+              </select>
+            </div>
+            <div class="fld"><label>Red principal</label>
+              <select id="soc-net">
+                <option value="linkedin">LinkedIn (profesional)</option>
+                <option value="instagram">Instagram (visual/inspiracional)</option>
+                <option value="tiktok">TikTok (entretenido/educativo)</option>
+              </select>
+            </div>
+            <div class="fld"><label>Tema personalizado (si aplica)</label>
+              <input id="soc-custom" placeholder="ej: Lanzamos nueva web para Formen"/>
+            </div>
+          </div>
+          <div class="brow" style="margin-top:8px;">
+            <button class="btn" onclick="generateSocialContent()"><span>Generar contenido</span></button>
+            <div class="ld" id="ld-soc-gen"><div class="sp"></div>Generando con Deepseek...</div>
+          </div>
+        </div>
+
+        <!-- CONTENIDO -->
+        <div class="fld" style="margin-bottom:12px;">
+          <label>Contenido del post</label>
+          <textarea id="soc-content" style="min-height:120px;" placeholder="Escribí o generá el contenido del post..."></textarea>
+        </div>
+
+        <!-- IMAGEN -->
+        <div class="fld" style="margin-bottom:14px;">
+          <label>Imagen o video</label>
+          <div style="border:1px dashed rgba(242,170,191,.2);padding:20px;text-align:center;cursor:pointer;" onclick="document.getElementById('soc-img-input').click()" id="img-drop">
+            <input type="file" id="soc-img-input" accept="image/*,video/mp4,video/mov" style="display:none" onchange="handleImageUpload(this)"/>
+            <div id="img-preview" style="color:var(--gray);font-size:13px;">
+              <div style="font-size:28px;margin-bottom:6px;opacity:.3;">↑</div>
+              <div>Clickeá para subir imagen o video</div>
+              <div style="font-size:11px;margin-top:4px;color:var(--gray-2);">JPG, PNG, GIF, MP4 — máx 50MB</div>
+            </div>
+          </div>
+          <input type="hidden" id="soc-img-path"/>
+        </div>
+
+        <!-- HORARIO -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-s" id="pub-now-btn" onclick="setPubMode('now')" style="color:var(--pink);">● Publicar ahora</button>
+          <button class="btn-s" id="pub-sch-btn" onclick="setPubMode('schedule')">Programar</button>
+          <div id="schedule-picker" style="display:none;">
+            <input type="datetime-local" id="soc-schedule" style="background:var(--black-3);border:1px solid rgba(242,170,191,.15);color:var(--white);font-size:12px;padding:8px 12px;font-family:var(--font);"/>
+          </div>
+        </div>
+
+        <div class="brow">
+          <button class="btn" onclick="publishSocial()"><span id="pub-btn-txt">Publicar en redes</span></button>
+          <div class="ld" id="ld-soc-pub"><div class="sp"></div>Publicando...</div>
+        </div>
+        <div class="err" id="err-soc"></div>
+        <div id="soc-pub-result" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- HISTORIAL -->
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);">Historial de publicaciones</div>
+          <button class="btn-s" onclick="loadSocialHistory()">Actualizar</button>
+        </div>
+        <div id="social-history"></div>
+      </div>
+
+      <!-- INSTRUCCIONES TOKENS -->
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-top:16px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Cómo obtener los tokens</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:8px;">LinkedIn</div>
+            <div style="font-size:12px;color:var(--gray);line-height:1.7;">1. linkedin.com/developers<br>2. Create App → asociar a tu página<br>3. Products → Share on LinkedIn<br>4. Auth → Client ID y Secret<br>5. Configurar en Ajustes → Redes</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:8px;">Instagram</div>
+            <div style="font-size:12px;color:var(--gray);line-height:1.7;">1. developers.facebook.com<br>2. Create App → Business<br>3. Instagram Graph API<br>4. Necesitás cuenta Business/Creator<br>5. Configurar App ID y Secret</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-t);font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:8px;">TikTok</div>
+            <div style="font-size:12px;color:var(--gray);line-height:1.7;">1. developers.tiktok.com<br>2. Create App<br>3. Content Posting API (requiere aprobación 1-2 semanas)<br>4. Pegá el token manualmente</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:12px 14px;background:var(--black-3);border-left:2px solid var(--amber);font-size:12px;color:var(--amber);">
+          ⚠ Configurá los Client ID / Secret en Ajustes → Redes Sociales antes de conectar.
+        </div>
+      </div>
+
+      <!-- TOKEN TIKTOK MANUAL -->
+      <div id="tt-token-form" style="display:none;background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-top:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:12px;">Token TikTok manual</div>
+        <div class="fg fg2">
+          <div class="fld"><label>Access Token</label><input id="tt-tok-inp" type="password" placeholder="eyJ..."/></div>
+          <div class="fld"><label>User ID</label><input id="tt-uid-inp" placeholder="tu TikTok user ID"/></div>
+        </div>
+        <div class="brow">
+          <button class="btn" onclick="saveManualTikTok()"><span>Guardar token TikTok</span></button>
+          <button class="btn-g" onclick="document.getElementById('tt-token-form').style.display='none'">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUBSPOT -->
+    <div class="panel" id="panel-hubspot">
+      <div class="sh"><div class="sh-lbl">Integración</div><h1 class="sh-title">HubSpot<br><em>sync.</em></h1></div>
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;margin-bottom:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:13px;text-transform:uppercase;margin-bottom:8px;">API Token</div>
+        <div style="font-size:13px;color:var(--gray);margin-bottom:14px;line-height:1.6;">Ingresá tu HubSpot Private App Token. HubSpot → Configuración → Integraciones → Private Apps.</div>
+        <div class="fg" style="max-width:480px;"><div class="fld"><label>Token</label><input id="hs-tok" type="password" placeholder="pat-na1-xxxxxxxx"/></div></div>
+        <div class="brow"><button class="btn" onclick="saveHSTok()"><span>Guardar</span></button><button class="btn-g" onclick="testHS()">Probar</button><div class="ld" id="ld-hs"><div class="sp"></div></div></div>
+        <div id="hs-st" style="margin-top:10px;font-size:12px;"></div>
+      </div>
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;margin-bottom:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:13px;text-transform:uppercase;margin-bottom:8px;">Exportar a HubSpot</div>
+        <div style="font-size:13px;color:var(--gray);margin-bottom:14px;">Sincronizá todos los prospectos del CRM como contactos en HubSpot.</div>
+        <div class="brow"><button class="btn" onclick="exportHS()"><span>Exportar al CRM</span></button><div class="ld" id="ld-hs2"><div class="sp"></div>Exportando...</div></div>
+        <div id="hs-ex" style="margin-top:10px;font-size:12px;color:var(--gray);"></div>
+      </div>
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:13px;text-transform:uppercase;margin-bottom:8px;">Exportar CSV para HubSpot</div>
+        <a href="http://localhost:5000/api/export/csv" class="btn-g" style="text-decoration:none;display:inline-block;">↓ Descargar CSV</a>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="panel-settings">
+      <div class="sh"><div class="sh-lbl">Configuración</div><h1 class="sh-title">Ajustes<br><em>del sistema.</em></h1></div>
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;margin-bottom:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Ollama / Deepseek</div>
+        <div class="fg fg2"><div class="fld"><label>URL Ollama</label><input id="cfg-ou" placeholder="http://localhost:11434"/></div><div class="fld"><label>Modelo</label><input id="cfg-mo" placeholder="deepseek-r1:latest"/></div></div>
+        <div class="brow"><button class="btn" onclick="saveCfg('ollama')"><span>Guardar</span></button><button class="btn-g" onclick="testOl()">Probar</button><div class="ld" id="ld-cfg"><div class="sp"></div></div></div>
+        <div id="cfg-st" style="margin-top:10px;font-size:12px;color:var(--gray);"></div>
+      </div>
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;margin-bottom:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">SMTP — Envío de emails</div>
+        <div class="fg fg2">
+          <div class="fld"><label>Servidor SMTP</label><input id="cfg-sh" placeholder="mail.diazux.tech"/></div>
+          <div class="fld"><label>Puerto</label><input id="cfg-sp" placeholder="587" value="587"/></div>
+          <div class="fld"><label>Email</label><input id="cfg-su" placeholder="david@diazux.tech"/></div>
+          <div class="fld"><label>Contraseña</label><input id="cfg-sw" type="password"/></div>
+        </div>
+        <div class="brow"><button class="btn" onclick="saveCfg('smtp')"><span>Guardar SMTP</span></button><button class="btn-g" onclick="testSMTP()">Probar conexión</button><div class="ld" id="ld-smtp"><div class="sp"></div></div></div>
+        <div id="smtp-st" style="margin-top:10px;font-size:12px;"></div>
+      </div>
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;margin-bottom:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Tu perfil</div>
+        <div class="fg fg2">
+          <div class="fld"><label>Nombre</label><input id="cfg-nm" placeholder="David Díaz"/></div>
+          <div class="fld"><label>Empresa</label><input id="cfg-cp" placeholder="DiazUX Studio"/></div>
+          <div class="fld"><label>Sitio web</label><input id="cfg-wb" placeholder="https://www.diazux.tech"/></div>
+          <div class="fld"><label>Caso de éxito</label><input id="cfg-cs" placeholder="Bara & Co +312% conversión"/></div>
+        </div>
+        <button class="btn" onclick="saveCfg('profile')" style="margin-top:4px;"><span>Guardar perfil</span></button>
+      </div>
+
+      <!-- REDES SOCIALES API KEYS -->
+      <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:22px;margin-bottom:12px;">
+        <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Redes Sociales — API Keys</div>
+        <div style="font-size:12px;color:var(--gray);margin-bottom:16px;line-height:1.6;">
+          Configurá las credenciales de LinkedIn y Meta antes de conectar las cuentas en la sección Redes Sociales.
+        </div>
+        <div class="fg fg2">
+          <div class="fld"><label>LinkedIn Client ID</label><input id="cfg-li-id" placeholder="Ej: 77ijufpt6dqpnq"/></div>
+          <div class="fld"><label>LinkedIn Client Secret</label><input id="cfg-li-sec" type="password" placeholder="Tu LinkedIn Client Secret"/></div>
+          <div class="fld"><label>Meta App ID</label><input id="cfg-meta-id" placeholder="Tu Meta App ID"/></div>
+          <div class="fld"><label>Meta App Secret</label><input id="cfg-meta-sec" type="password" placeholder="Tu Meta App Secret"/></div>
+        </div>
+        <div class="brow" style="margin-top:4px;">
+          <button class="btn" onclick="saveSocialCfg()"><span>Guardar API Keys</span></button>
+        </div>
+        <div id="soc-cfg-st" style="margin-top:10px;font-size:12px;color:var(--green);display:none;">✓ API Keys guardadas</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+const OL  = 'http://localhost:11434';
+let cfg = {};
+let _scrLeads = [];
+let _chartStatus = null, _chartPl = null, _chartOp = null, _chartFn = null;
+
+// ── CURSOR ───────────────────────────────────────────────────────
+const cur=document.getElementById('cur'),ring=document.getElementById('ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function loop(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(loop);})();
+document.addEventListener('mouseover',e=>{if(e.target.matches('a,button,input,select,textarea,.ni')){cur.classList.add('big');ring.classList.add('big');}else{cur.classList.remove('big');ring.classList.remove('big');}});
+
+// ── INIT ─────────────────────────────────────────────────────────
+window.addEventListener('load',async()=>{
+  await loadConfig();
+  loadDash();
+  checkOllama();
+  document.getElementById('hs-tok').value = localStorage.getItem('hs_tok')||'';
+});
+
+async function loadConfig(){
+  try{
+    const r = await fetch(API+'/config');
+    cfg = await r.json();
+    if(cfg.ollama_url) document.getElementById('cfg-ou').value=cfg.ollama_url;
+    if(cfg.model)      document.getElementById('cfg-mo').value=cfg.model;
+    if(cfg.smtp_host)  document.getElementById('cfg-sh').value=cfg.smtp_host;
+    if(cfg.smtp_port)  document.getElementById('cfg-sp').value=cfg.smtp_port;
+    if(cfg.smtp_user)  document.getElementById('cfg-su').value=cfg.smtp_user;
+    if(cfg.name)       {document.getElementById('cfg-nm').value=cfg.name; document.getElementById('sq-sn').value=cfg.name;}
+    if(cfg.company)    document.getElementById('cfg-cp').value=cfg.company;
+    if(cfg.web)        document.getElementById('cfg-wb').value=cfg.web;
+    if(cfg.case_study) document.getElementById('cfg-cs').value=cfg.case_study;
+    if(cfg.linkedin_client_id) document.getElementById('cfg-li-id').value=cfg.linkedin_client_id;
+    if(cfg.meta_app_id) document.getElementById('cfg-meta-id').value=cfg.meta_app_id;
+  }catch{}
+}
+
+// ── NAV ──────────────────────────────────────────────────────────
+const titles={dashboard:'Dashboard',social:'Redes Sociales',finder:'Email Finder',verify:'Verificador SMTP',scraper:'Scraper',audit:'Auditoría Web',crm:'Prospectos CRM',pipeline:'Pipeline',sequences:'Secuencias',reports:'Reportes',hubspot:'HubSpot',settings:'Ajustes'};
+function go(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('active',n.getAttribute('onclick')?.includes("'"+id+"'")));
+  document.getElementById('tb-t').textContent=titles[id]||id;
+  if(id==='dashboard')loadDash();
+  if(id==='crm')loadCRM('all');
+  if(id==='social'){loadSocialTokens();loadSocialHistory();}
+  if(id==='pipeline')loadPipeline();
+  if(id==='reports')loadReports();
+}
+
+// ── OLLAMA ───────────────────────────────────────────────────────
+async function checkOllama(){
+  const url = cfg.ollama_url||OL;
+  try{
+    const r=await fetch(url+'/api/tags');
+    if(r.ok){document.getElementById('ol-dot').classList.add('on');document.getElementById('ol-txt').textContent='Deepseek activo';}
+    else throw 0;
+  }catch{document.getElementById('ol-txt').textContent='Ollama offline';}
+}
+
+async function callOllama(prompt){
+  const url = (cfg.ollama_url||OL)+'/api/generate';
+  const model = cfg.model||'deepseek-r1:latest';
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,prompt,stream:false,format:'json'})});
+  if(!r.ok)throw new Error('Ollama error '+r.status);
+  return (await r.json()).response;
+}
+
+function pj(t){try{return JSON.parse(t.replace(/```json|```/g,'').trim());}catch{const m=t.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null;}}
+
+// ── DASHBOARD ────────────────────────────────────────────────────
+async function loadDash(){
+  try{
+    const s=await (await fetch(API+'/stats')).json();
+    document.getElementById('tb-total').textContent=s.total+' prospectos';
+    document.getElementById('tb-rate').textContent=s.rate+'% respuesta';
+    document.getElementById('tb-open').textContent=s.open_rate+'% aperturas';
+    const sg=document.getElementById('dash-sg');
+    sg.innerHTML=[
+      ['Total',s.total],['Sin contactar',s.new],['En secuencia',s.in_seq],
+      ['Respondieron',s.replied],['Reuniones',s.meetings],['Clientes',s.clients],
+      ['Emails enviados',s.emails_sent],['Abiertos',s.opens],
+      ['Pipeline $',s.pipeline_value?'$'+Number(s.pipeline_value).toLocaleString():'—']
+    ].map(([l,v])=>`<div class="sc"><div class="sc-v">${v}</div><div class="sc-l">${l}</div></div>`).join('');
+
+    // Chart status
+    if(s.stages.length){
+      const labels=s.stages.map(x=>x.status),data=s.stages.map(x=>x.cnt);
+      if(_chartStatus){_chartStatus.destroy();}
+      _chartStatus=new Chart(document.getElementById('chart-status'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:['#444','#3b5f8a','#5a4a1a','#6b2a2a','#1a4a3a','#F2AABF','#2a5a2a'],borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#777',font:{family:'Barlow Condensed',size:11}}}},cutout:'65%'}});
+    }
+
+    // Top prospects
+    document.getElementById('dash-top').innerHTML=s.top_prospects.length
+      ?s.top_prospects.map(p=>`<div style="padding:8px 0;border-bottom:1px solid rgba(242,170,191,.05);display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:13px;font-weight:500;">${p.brand}</div><div style="font-size:11px;color:var(--gray);font-family:var(--font-m);">${p.email||'—'}</div></div>
+        <div style="text-align:right;"><div style="font-family:var(--font-t);font-weight:900;font-size:18px;color:var(--pink);">${p.score}</div><div style="font-size:10px;color:var(--gray);">score</div></div>
+      </div>`).join('')
+      :'<div style="color:var(--gray);font-size:13px;">Sin prospectos</div>';
+
+    // Activity
+    document.getElementById('dash-activity').innerHTML=s.recent_activity.length
+      ?s.recent_activity.map(a=>`<div style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid rgba(242,170,191,.04);font-size:12px;"><span style="color:var(--gray);min-width:120px;font-family:var(--font-m);">${a.date}</span><span style="color:var(--pink);min-width:70px;font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;">${a.type}</span><span style="color:var(--gray);">${a.description}</span></div>`).join('')
+      :'<div style="color:var(--gray);font-size:13px;">Sin actividad reciente</div>';
+  }catch(e){console.error(e);}
+}
+
+// ── FINDER ───────────────────────────────────────────────────────
+function ftab(t){
+  document.getElementById('fp-d').style.display=t==='d'?'block':'none';
+  document.getElementById('fp-n').style.display=t==='n'?'block':'none';
+  document.getElementById('ft-d').style.color=t==='d'?'var(--pink)':'';
+  document.getElementById('ft-n').style.color=t==='n'?'var(--pink)':'';
+}
+
+async function findDomain(){
+  const domain=document.getElementById('f-dom').value.trim();
+  if(!domain)return toast('Ingresá un dominio');
+  ld('fd',1);clr('res-fd');cerr('err-fd');
+  try{
+    const raw=await callOllama(`Dado el dominio "${domain}", genera posibles emails de contacto. Infiere el tipo de empresa argentina. Genera 5-7 variaciones con tipo (personal/genérico/soporte/ventas) y confianza 0-100. Responde SOLO JSON: {"company":"nombre","domain":"${domain}","pattern":"patrón","emails":[{"email":"x@${domain}","type":"genérico","confidence":85}]}`);
+    const d=pj(raw);
+    if(!d)throw new Error('Sin respuesta');
+    renderEmails('res-fd',d.emails||[],d.company,d.pattern);
+  }catch(e){err('err-fd','Error: verificá Ollama. '+e.message);}
+  ld('fd',0);
+}
+
+async function findName(){
+  const fn=document.getElementById('f-fn').value.trim(),ln=document.getElementById('f-ln').value.trim(),nd=document.getElementById('f-nd').value.trim();
+  if(!fn||!nd)return toast('Nombre y dominio son requeridos');
+  ld('fn',1);clr('res-fn');cerr('err-fn');
+  try{
+    const raw=await callOllama(`Para "${fn} ${ln}" en "${nd}", genera variaciones de email. Patrones: nombre@, nombre.apellido@, n.apellido@, etc. Ordena por probabilidad. Responde SOLO JSON: {"full_name":"${fn} ${ln}","most_likely":"email","emails":[{"email":"x@${nd}","pattern":"nombre.apellido","confidence":80}]}`);
+    const d=pj(raw);
+    if(!d)throw new Error('Sin respuesta');
+    renderEmails('res-fn',[...(d.emails||[])].sort((a,b)=>b.confidence-a.confidence),d.full_name,'Más probable: '+d.most_likely,d.most_likely);
+  }catch(e){err('err-fn','Error: '+e.message);}
+  ld('fn',0);
+}
+
+function renderEmails(cont,emails,title,sub,best=''){
+  if(!emails.length){document.getElementById(cont).innerHTML=emptyState('Sin resultados');return;}
+  let h=`<div style="margin-bottom:14px;"><div style="font-family:var(--font-t);font-weight:900;font-size:17px;text-transform:uppercase;">${title||''}</div><div style="font-size:12px;color:var(--gray);margin-top:3px;">${sub||''}</div></div>`;
+  emails.forEach((e,i)=>{
+    const tc=e.confidence>=70?'tv':e.confidence>=40?'tw':'tg';
+    const isBest=e.email===best;
+    h+=`<div class="rc fi" style="animation-delay:${i*50}ms${isBest?';border-color:rgba(242,170,191,.3)':''}">
+      <div class="rc-top">
+        <div>
+          <div class="rc-email">${e.email}${isBest?' <span style="font-size:10px;color:var(--pink);font-family:var(--font-t);letter-spacing:.1em">★ MEJOR</span>':''}</div>
+          <div class="rc-meta"><span class="tag ${tc}">${e.confidence}%</span><span class="tag tg">${e.type||e.pattern||''}</span></div>
+          <div class="rc-act">
+            <button class="btn-s" onclick="prefillVerify('${e.email}')">Verificar →</button>
+            <button class="btn-s" onclick="cp('${e.email}')">Copiar</button>
+          </div>
+        </div>
+        <div class="rc-conf"><div class="rc-cv">${e.confidence}%</div><div class="rc-cl">confianza</div></div>
+      </div>
+    </div>`;
+  });
+  document.getElementById(cont).innerHTML=h;
+}
+
+// ── VERIFY ───────────────────────────────────────────────────────
+function prefillVerify(e){document.getElementById('v-em').value=e;go('verify');}
+
+async function verifyEm(){
+  const email=document.getElementById('v-em').value.trim();
+  if(!email)return toast('Ingresá un email');
+  ld('v',1);clr('res-v');cerr('err-v');
+  let smtp={reachable:'unknown',disposable:false,mx:false};
+  try{const r=await fetch(`https://api.mailcheck.ai/email/${encodeURIComponent(email)}`);if(r.ok){const d=await r.json();smtp={reachable:d.valid?'yes':'no',disposable:d.disposable||false,mx:d.mx||false};}}catch{}
+  try{
+    const raw=await callOllama(`Analiza el email "${email}" para outreach B2B en Argentina. SMTP: reachable=${smtp.reachable}, disposable=${smtp.disposable}, mx=${smtp.mx}. Da score 0-100, status (valid/risky/invalid), recomendación. SOLO JSON: {"email":"${email}","status":"valid","score":85,"domain_type":"corporativo","user_type":"personal","is_disposable":false,"mx_exists":true,"recommendation":"texto","risks":[],"verdict":"texto"}`);
+    const d=pj(raw);if(!d)throw new Error();
+    if(smtp.reachable==='no')d.status='invalid';
+    if(smtp.disposable)d.risks=(d.risks||[]).concat(['Email desechable']);
+    d.mx_exists=smtp.mx;
+    renderVerify(d);
+  }catch(e){err('err-v','Error: '+e.message);}
+  ld('v',0);
+}
+
+function renderVerify(d){
+  const iv=d.status==='valid',ir=d.status==='risky';
+  const ic=iv?'var(--green)':ir?'var(--amber)':'var(--red)';
+  const bg=iv?'rgba(74,222,128,.1)':ir?'rgba(251,191,36,.1)':'rgba(248,113,113,.1)';
+  const lbl=iv?'VÁLIDO':ir?'RIESGOSO':'INVÁLIDO';
+  let h=`<div class="vb fi">
+    <div class="vb-h">
+      <div class="vb-icon" style="background:${bg};color:${ic}">${iv?'✓':ir?'⚠':'✗'}</div>
+      <div><div class="vb-sc" style="color:${ic}">${d.score}%</div><div class="vb-vd" style="color:${ic}">${lbl} — ${d.verdict}</div></div>
+    </div>
+    <div class="vb-grid">
+      <div class="vb-item"><div class="vb-iv">${d.domain_type}</div><div class="vb-il">Dominio</div></div>
+      <div class="vb-item"><div class="vb-iv">${d.user_type}</div><div class="vb-il">Usuario</div></div>
+      <div class="vb-item"><div class="vb-iv" style="color:${d.mx_exists?'var(--green)':'var(--red)'}">${d.mx_exists?'Sí':'No'}</div><div class="vb-il">MX activo</div></div>
+      <div class="vb-item"><div class="vb-iv" style="color:${d.is_disposable?'var(--red)':'var(--green)'}">${d.is_disposable?'Sí':'No'}</div><div class="vb-il">Desechable</div></div>
+    </div>
+    <div class="vb-rec">${d.recommendation}</div>`;
+  if(d.risks?.length)h+=`<div style="margin-top:8px;">${d.risks.map(r=>`<div style="font-size:12px;color:var(--amber);padding:2px 0;">⚠ ${r}</div>`).join('')}</div>`;
+  if(iv||ir)h+=`<div class="rc-act" style="margin-top:14px;"><button class="btn-s" onclick="cp('${d.email}')">Copiar email</button></div>`;
+  h+=`</div>`;
+  document.getElementById('res-v').innerHTML=h;
+}
+
+// ── SCRAPER ──────────────────────────────────────────────────────
+async function scrape(){
+  const ind=document.getElementById('sc-ind').value,cn=document.getElementById('sc-cn').value,sz=document.getElementById('sc-sz').value;
+  ld('sc',1);clr('res-sc');cerr('err-sc');
+  try{
+    const raw=await callOllama(`Genera una lista de 12 empresas/marcas de ${cn} en el rubro "${ind}", tamaño "${sz}". Para cada una: nombre, dominio probable, descripción, por qué son buenos prospectos para agencia UX, dónde encontrarlas. SOLO JSON: {"leads":[{"name":"Marca","domain":"marca.com.ar","description":"qué hacen","why":"por qué prospectar","find_at":"@instagram o Tiendanube","estimated_size":"1-10"}]}`);
+    const d=pj(raw);if(!d)throw new Error();
+    _scrLeads=d.leads||[];
+    renderScraper(_scrLeads);
+  }catch(e){err('err-sc','Error: '+e.message);}
+  ld('sc',0);
+}
+
+function renderScraper(leads){
+  if(!leads.length){document.getElementById('res-sc').innerHTML=emptyState('Sin resultados');return;}
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <span style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);">${leads.length} prospectos</span>
+    <button class="btn-g" onclick="addAllLeads()">+ Agregar todos al CRM</button>
+  </div>`;
+  leads.forEach((l,i)=>{
+    h+=`<div class="rc fi" style="animation-delay:${i*40}ms;display:flex;justify-content:space-between;gap:14px;">
+      <div>
+        <div style="font-family:var(--font-t);font-weight:700;font-size:15px;text-transform:uppercase;">${l.name}</div>
+        <div style="font-size:11px;color:var(--gray);font-family:var(--font-m);margin:3px 0;">${l.domain}</div>
+        <div style="font-size:12px;color:var(--gray);line-height:1.5;margin-bottom:6px;">${l.description}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag tb">${l.find_at}</span>
+          <span class="tag tg">${l.estimated_size}</span>
+        </div>
+        <div style="font-size:11px;color:var(--pink);margin-top:5px;font-family:var(--font-t);font-weight:600;">${l.why}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">
+        <button class="btn-s" onclick="addLead(${i})">+ CRM</button>
+        <button class="btn-s" onclick="document.getElementById('f-dom').value='${l.domain}';go('finder')">Email</button>
+        <button class="btn-s" onclick="document.getElementById('au-url').value='https://${l.domain}';go('audit')">Auditar</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('res-sc').innerHTML=h;
+}
+
+async function addLead(i){
+  const l=_scrLeads[i];
+  await fetch(API+'/prospects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand:l.name,url:l.domain,problem:l.why,source:'Scraper '+document.getElementById('sc-ind').value})});
+  toast('✓ '+l.name+' al CRM');
+}
+async function addAllLeads(){
+  await fetch(API+'/prospects/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prospects:_scrLeads.map(l=>({brand:l.name,url:l.domain,problem:l.why,source:'Scraper'}))})});
+  toast('✓ '+_scrLeads.length+' leads al CRM');loadDash();
+}
+
+// ── AUDIT ────────────────────────────────────────────────────────
+async function audit(){
+  const url=document.getElementById('au-url').value.trim(),tp=document.getElementById('au-tp').value;
+  if(!url)return toast('Ingresá una URL');
+  ld('au',1);clr('res-au');cerr('err-au');
+  try{
+    const raw=await callOllama(`Auditoría de sitio web tipo "${tp}", URL "${url}". Sos experto UX/CRO. Analiza problemas comunes para ese tipo en Argentina. Secciones: UX/Usabilidad, Conversión, SEO, Performance, Mobile. Cada sección: score 0-100, items (status ok/warn/fail, title, desc). Genera email_hook para outreach. SOLO JSON: {"url":"${url}","overall_score":65,"email_hook":"frase","sections":[{"name":"UX","score":60,"items":[{"status":"fail","title":"prob","desc":"desc"}]}]}`);
+    const d=pj(raw);if(!d)throw new Error();
+    renderAudit(d);
+  }catch(e){err('err-au','Error: '+e.message);}
+  ld('au',0);
+}
+
+function renderAudit(d){
+  const sc=d.overall_score>=70?'var(--green)':d.overall_score>=40?'var(--amber)':'var(--red)';
+  let h=`<div style="display:flex;align-items:center;gap:24px;margin-bottom:20px;">
+    <div><div style="font-family:var(--font-t);font-weight:900;font-size:52px;color:${sc};line-height:1;">${d.overall_score}</div><div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;font-family:var(--font-t);">Score</div></div>
+    <div style="flex:1;background:var(--black-3);border-left:2px solid var(--pink);padding:14px 16px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px;">Hook para email</div>
+      <div style="font-size:14px;color:var(--white);line-height:1.5;font-style:italic;">"${d.email_hook}"</div>
+      <button class="btn-s" onclick="cp('${(d.email_hook||'').replace(/'/g,"\\'")}');toast('Copiado')" style="margin-top:8px;">Copiar</button>
+    </div>
+  </div>`;
+  (d.sections||[]).forEach(s=>{
+    const sc2=s.score>=70?'var(--green)':s.score>=40?'var(--amber)':'var(--red)';
+    h+=`<div class="aud-sec fi"><div class="aud-hdr"><div class="aud-title">${s.name}</div><div class="aud-sc" style="color:${sc2}">${s.score}</div></div><div class="aud-body">`;
+    (s.items||[]).forEach(it=>{const dc=it.status==='ok'?'aok':it.status==='warn'?'awk':'afl';h+=`<div class="aud-item"><div class="ai-dot ${dc}"></div><div><div class="ai-t">${it.title}</div><div class="ai-d">${it.desc}</div></div></div>`;});
+    h+=`</div></div>`;
+  });
+  document.getElementById('res-au').innerHTML=h;
+}
+
+// ── CRM ──────────────────────────────────────────────────────────
+function showAddForm(){document.getElementById('add-form').style.display='block';}
+async function addProspect(){
+  const brand=document.getElementById('np-br').value.trim();
+  if(!brand)return toast('Ingresá el nombre de la marca');
+  await fetch(API+'/prospects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand,contact:document.getElementById('np-co').value.trim(),email:document.getElementById('np-em').value.trim(),url:document.getElementById('np-ur').value.trim(),problem:document.getElementById('np-pr').value.trim(),source:document.getElementById('np-so').value.trim(),deal_value:parseFloat(document.getElementById('np-dv').value)||0,deal_stage:document.getElementById('np-ds').value})});
+  ['np-br','np-co','np-em','np-ur','np-pr','np-so','np-dv'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('add-form').style.display='none';
+  loadCRM('all');loadDash();
+  toast('✓ Prospecto agregado');
+}
+
+async function loadCRM(filter){
+  const url=filter==='all'?API+'/prospects':API+'/prospects?status='+encodeURIComponent(filter);
+  const prospects=await (await fetch(url)).json();
+  const wrap=document.getElementById('crm-wrap');
+  if(!prospects.length){wrap.innerHTML=emptyState('No hay prospectos');return;}
+  const statuses=['Sin contactar','Email 1 enviado','Email 2 enviado','Email 3 enviado','Respondió','Reunión agendada','Cliente','No interesado'];
+  let h=`<table class="ct"><thead><tr><th>Marca</th><th>Contacto</th><th>Email</th><th>Estado</th><th>Score</th><th>Deal</th><th>Acciones</th></tr></thead><tbody>`;
+  prospects.forEach(p=>{
+    h+=`<tr>
+      <td><strong>${p.brand}</strong><br><span style="font-size:11px;color:var(--gray);font-family:var(--font-m);">${p.url||''}</span></td>
+      <td style="font-size:12px;">${p.contact||'—'}</td>
+      <td style="font-family:var(--font-m);font-size:11px;">${p.email||'—'}</td>
+      <td><select class="sp-sel" onchange="updateStatus('${p.id}',this.value)">${statuses.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td>
+        <div style="font-family:var(--font-t);font-weight:900;font-size:18px;color:var(--pink);">${p.score}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${p.score}%"></div></div>
+      </td>
+      <td style="font-size:12px;">${p.deal_value?'$'+Number(p.deal_value).toLocaleString():'—'}<br><span style="font-size:10px;color:var(--gray);">${p.deal_stage||''}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn-s" onclick="openSendModal('${p.id}','${p.email||''}','${(p.brand||'').replace(/'/g,"\\'")}')">✉</button>
+          <button class="btn-s" onclick="openDetail('${p.id}')">Ver</button>
+          <button class="btn-s" onclick="document.getElementById('sq-br').value='${p.brand}';document.getElementById('sq-pr').value='${(p.problem||'').replace(/'/g,"\\'")}';go('sequences')">Seq</button>
+          <button class="btn-s btn-r" onclick="delProspect('${p.id}')">×</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+  wrap.innerHTML=h;
+}
+
+async function updateStatus(id,status){
+  await fetch(API+'/prospects/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+  loadDash();
+}
+async function delProspect(id){
+  if(!confirm('¿Eliminar este prospecto?'))return;
+  await fetch(API+'/prospects/'+id,{method:'DELETE'});
+  loadCRM('all');loadDash();toast('Eliminado');
+}
+
+// ── SEND EMAIL ───────────────────────────────────────────────────
+function openSendModal(pid,email,brand){
+  document.getElementById('m-pid').value=pid;
+  document.getElementById('m-to').value=email;
+  document.getElementById('m-subj').value='El checkout de '+brand+' me llamó la atención';
+  document.getElementById('m-body').value='Hola,\n\nEstuve mirando la tienda de '+brand+'...';
+  document.getElementById('send-modal').classList.add('on');
+}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+
+async function sendEmailNow(){
+  ld('send',1);cerr('err-send');
+  const data={to:document.getElementById('m-to').value,subject:document.getElementById('m-subj').value,body:document.getElementById('m-body').value,prospect_id:document.getElementById('m-pid').value,sequence_num:parseInt(document.getElementById('m-seqn').value)};
+  try{
+    const r=await fetch(API+'/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await r.json();
+    if(d.ok){closeModal('send-modal');toast('✓ Email enviado');loadCRM('all');loadDash();}
+    else err('err-send',d.error||'Error al enviar');
+  }catch(e){err('err-send',e.message);}
+  ld('send',0);
+}
+
+// ── PROSPECT DETAIL ──────────────────────────────────────────────
+async function openDetail(id){
+  const [ps,acts,emails]=await Promise.all([
+    fetch(API+'/prospects').then(r=>r.json()).then(d=>d.find(p=>p.id===id)),
+    fetch(API+'/activities/'+id).then(r=>r.json()),
+    fetch(API+'/emails/'+id).then(r=>r.json())
+  ]);
+  if(!ps)return;
+  document.getElementById('dm-title').textContent=ps.brand;
+  let h=`<div class="fg fg2" style="margin-bottom:16px;">
+    <div><div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Email</div><div style="font-family:var(--font-m);font-size:13px;">${ps.email||'—'}</div></div>
+    <div><div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Estado</div><div style="font-family:var(--font-t);font-weight:700;color:var(--pink);">${ps.status}</div></div>
+    <div><div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Score</div><div style="font-family:var(--font-t);font-weight:900;font-size:24px;color:var(--pink);">${ps.score}</div></div>
+    <div><div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Deal</div><div style="font-size:13px;">${ps.deal_value?'$'+Number(ps.deal_value).toLocaleString():'—'} <span style="color:var(--gray);">${ps.deal_stage||''}</span></div></div>
+  </div>`;
+  if(ps.problem)h+=`<div style="background:var(--black-3);border-left:2px solid var(--pink);padding:10px 14px;font-size:13px;color:var(--gray);margin-bottom:16px;">${ps.problem}</div>`;
+  
+  if(emails.length){
+    h+=`<div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:10px;">Emails enviados</div>`;
+    emails.forEach(e=>{
+      const opened=e.opened?`<span class="tag tv">ABIERTO ${e.opened_at||''}</span>`:`<span class="tag tg">No abierto</span>`;
+      h+=`<div class="email-card"><div class="ec-hdr"><div class="ec-subject">#${e.sequence_num} — ${e.subject}</div><div class="ec-date">${e.sent_at}</div></div><div class="ec-meta">${opened}</div><div class="ec-body">${e.body}</div></div>`;
+    });
+  }
+  if(acts.length){
+    h+=`<div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin:16px 0 10px;">Actividad</div>`;
+    h+=acts.map(a=>`<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(242,170,191,.04);font-size:12px;"><span style="color:var(--gray);min-width:130px;font-family:var(--font-m);">${a.date}</span><span style="color:var(--gray);">${a.description}</span></div>`).join('');
+  }
+  document.getElementById('dm-content').innerHTML=h;
+  document.getElementById('detail-modal').classList.add('on');
+}
+
+// ── PIPELINE ─────────────────────────────────────────────────────
+async function loadPipeline(){
+  const stats=await (await fetch(API+'/stats')).json();
+  const stages=['Lead','Contactado','Propuesta','Negociación','Cerrado'];
+  const prospects=await (await fetch(API+'/prospects')).json();
+  const bystage={};
+  stages.forEach(s=>{bystage[s]={count:0,value:0};});
+  prospects.forEach(p=>{const s=p.deal_stage||'Lead';if(bystage[s]){bystage[s].count++;bystage[s].value+=p.deal_value||0;}});
+  document.getElementById('pipeline-cols').innerHTML=stages.map(s=>`<div class="pl-col"><div class="pl-title">${s}</div><div class="pl-count">${bystage[s].count}</div><div class="pl-label">${bystage[s].value?'$'+Number(bystage[s].value).toLocaleString():'sin valor'}</div></div>`).join('');
+  if(_chartPl){_chartPl.destroy();}
+  _chartPl=new Chart(document.getElementById('chart-pipeline'),{type:'bar',data:{labels:stages,datasets:[{label:'Valor ($)',data:stages.map(s=>bystage[s].value),backgroundColor:'rgba(242,170,191,.6)',borderColor:'var(--pink)',borderWidth:1}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#777'}},y:{ticks:{color:'#777',callback:v=>'$'+v.toLocaleString()}}}}});
+}
+
+// ── SEQUENCES ────────────────────────────────────────────────────
+async function genSeq(){
+  const brand=document.getElementById('sq-br').value.trim();
+  if(!brand)return toast('Ingresá la marca');
+  ld('sq',1);clr('res-sq');cerr('err-sq');
+  const problem=document.getElementById('sq-pr').value.trim()||'sitio web desactualizado';
+  const contact=document.getElementById('sq-cn').value.trim()||'[Nombre]';
+  const sender=document.getElementById('sq-sn').value.trim()||cfg.name||'David';
+  try{
+    const raw=await callOllama(`Redactá 3 emails de outreach en español rioplatense para agencia de diseño UX. Marca: ${brand}. Problema: ${problem}. Contacto: ${contact}. Remitente: ${sender} de ${cfg.company||'DiazUX Studio'}. Caso: ${cfg.case_study||'Bara & Co +312% conversión'}. Web: ${cfg.web||'https://www.diazux.tech'}. Email 1 (día 0): presentación + problema + caso. Email 2 (día 3): seguimiento corto. Email 3 (día 7): ofrecer auditoría gratis. SOLO JSON: {"emails":[{"day":0,"subject":"asunto","body":"cuerpo"},{"day":3,"subject":"asunto","body":"cuerpo"},{"day":7,"subject":"asunto","body":"cuerpo"}]}`);
+    const d=pj(raw);if(!d)throw new Error();
+    const labels=['Primer contacto','Seguimiento','Último intento'];
+    let h=`<div class="sq-tl">`;
+    d.emails.forEach((e,i)=>{
+      h+=`<div class="sq-step"><div class="sq-dot ${i===0?'now':''}"></div><div class="sq-card"><div class="sq-day">Día ${e.day} — ${labels[i]}</div><div class="sq-sub">${e.subject}</div><div class="sq-prev" id="sq-b-${i}">${e.body}</div><div class="rc-act" style="margin-top:8px;"><button class="btn-s" onclick="document.getElementById('sq-b-${i}').style.maxHeight='none'">Ver todo</button><button class="btn-s" onclick="cp(\`${e.body.replace(/`/g,'\\`').replace(/'/g,"\\'")}  \`)">Copiar</button><button class="btn-s" onclick="prefillSend('${e.subject.replace(/'/g,"\\'")}',\`${e.body.replace(/`/g,'\\`')}\`,${i+1})">Enviar →</button></div></div></div>`;
+    });
+    h+=`</div>`;
+    document.getElementById('res-sq').innerHTML=h;
+  }catch(e){err('err-sq','Error: '+e.message);}
+  ld('sq',0);
+}
+
+function prefillSend(subj,body,seq){
+  document.getElementById('m-subj').value=subj;
+  document.getElementById('m-body').value=body;
+  document.getElementById('m-seqn').value=seq;
+  document.getElementById('send-modal').classList.add('on');
+}
+
+// ── REPORTS ──────────────────────────────────────────────────────
+async function loadReports(){
+  const stats=await (await fetch(API+'/stats')).json();
+  // Opens chart
+  if(_chartOp){_chartOp.destroy();}
+  _chartOp=new Chart(document.getElementById('chart-opens'),{type:'doughnut',data:{labels:['Abiertos','No abiertos'],datasets:[{data:[stats.opens,stats.emails_sent-stats.opens],backgroundColor:['rgba(242,170,191,.7)','rgba(68,68,68,.5)'],borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#777',font:{family:'Barlow Condensed',size:11}}}},cutout:'65%'}});
+  // Funnel chart
+  const funnel=[{l:'Total',v:stats.total},{l:'Contactados',v:stats.in_seq},{l:'Respondieron',v:stats.replied},{l:'Reuniones',v:stats.meetings},{l:'Clientes',v:stats.clients}];
+  if(_chartFn){_chartFn.destroy();}
+  _chartFn=new Chart(document.getElementById('chart-funnel'),{type:'bar',data:{labels:funnel.map(x=>x.l),datasets:[{data:funnel.map(x=>x.v),backgroundColor:'rgba(242,170,191,.5)',borderColor:'var(--pink)',borderWidth:1}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#777'}},y:{ticks:{color:'#777'}}}}});
+  // Recent opens
+  document.getElementById('report-opens').innerHTML=`<div style="font-size:13px;color:var(--gray);">${stats.opens} de ${stats.emails_sent} emails abiertos (${stats.open_rate}%)</div>`;
+}
+
+// ── HUBSPOT ──────────────────────────────────────────────────────
+function saveHSTok(){localStorage.setItem('hs_tok',document.getElementById('hs-tok').value.trim());toast('Token guardado');}
+async function testHS(){
+  ld('hs',1);
+  const tok=document.getElementById('hs-tok').value.trim();
+  try{
+    const r=await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1',{headers:{'Authorization':'Bearer '+tok}});
+    document.getElementById('hs-st').innerHTML=r.ok?'<span style="color:var(--green)">✓ Conexión exitosa</span>':'<span style="color:var(--red)">✗ Token inválido</span>';
+  }catch(e){document.getElementById('hs-st').innerHTML='<span style="color:var(--red)">✗ '+e.message+'</span>';}
+  ld('hs',0);
+}
+async function exportHS(){
+  const tok=localStorage.getItem('hs_tok');
+  if(!tok)return toast('Configurá el token primero');
+  ld('hs2',1);
+  const prospects=await (await fetch(API+'/prospects')).json();
+  let ok=0,fail=0;
+  for(const p of prospects){
+    if(!p.email)continue;
+    try{
+      const r=await fetch('https://api.hubapi.com/crm/v3/objects/contacts',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({properties:{email:p.email,firstname:(p.contact||'').split(' ')[0],lastname:(p.contact||'').split(' ').slice(1).join(' '),company:p.brand,website:p.url?'https://'+p.url:''}})});
+      r.ok?ok++:fail++;
+    }catch{fail++;}
+  }
+  document.getElementById('hs-ex').textContent=`✓ ${ok} exportados${fail?' · '+fail+' errores':''}`;
+  ld('hs2',0);toast(ok+' contactos a HubSpot');
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────────
+async function saveCfg(type){
+  let data={};
+  if(type==='ollama')data={ollama_url:document.getElementById('cfg-ou').value.trim(),model:document.getElementById('cfg-mo').value.trim()};
+  if(type==='smtp')data={smtp_host:document.getElementById('cfg-sh').value.trim(),smtp_port:document.getElementById('cfg-sp').value.trim(),smtp_user:document.getElementById('cfg-su').value.trim(),smtp_pass:document.getElementById('cfg-sw').value.trim()};
+  if(type==='profile')data={name:document.getElementById('cfg-nm').value.trim(),company:document.getElementById('cfg-cp').value.trim(),web:document.getElementById('cfg-wb').value.trim(),case_study:document.getElementById('cfg-cs').value.trim()};
+  await fetch(API+'/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  await loadConfig();
+  if(type==='ollama')checkOllama();
+  toast('✓ Guardado');
+}
+async function testOl(){
+  ld('cfg',1);document.getElementById('cfg-st').textContent='';
+  try{
+    const url=(document.getElementById('cfg-ou').value.trim()||OL)+'/api/tags';
+    const r=await fetch(url);
+    if(r.ok){const d=await r.json();document.getElementById('cfg-st').textContent='✓ Ollama activo. Modelos: '+(d.models||[]).map(m=>m.name).join(', ');document.getElementById('ol-dot').classList.add('on');}
+    else throw new Error(r.status);
+  }catch(e){document.getElementById('cfg-st').textContent='✗ Error: '+e.message;}
+  ld('cfg',0);
+}
+async function testSMTP(){
+  ld('smtp',1);document.getElementById('smtp-st').textContent='';
+  try{
+    const r=await fetch(API+'/smtp/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host:document.getElementById('cfg-sh').value,port:document.getElementById('cfg-sp').value,user:document.getElementById('cfg-su').value,password:document.getElementById('cfg-sw').value})});
+    const d=await r.json();
+    document.getElementById('smtp-st').innerHTML=d.ok?'<span style="color:var(--green)">✓ SMTP conectado correctamente</span>':'<span style="color:var(--red)">✗ '+d.error+'</span>';
+  }catch(e){document.getElementById('smtp-st').innerHTML='<span style="color:var(--red)">✗ '+e.message+'</span>';}
+  ld('smtp',0);
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function ld(id,show){const el=document.getElementById('ld-'+id);if(el)el.classList.toggle('on',!!show);}
+function clr(id){const el=document.getElementById(id);if(el)el.innerHTML='';}
+function cerr(id){const el=document.getElementById(id);if(el)el.classList.remove('on');}
+function err(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.classList.add('on');}}
+function emptyState(m){return`<div class="empty"><div class="empty-i">○</div><div class="empty-t">${m}</div></div>`;}
+function cp(t){navigator.clipboard.writeText(t).catch(()=>{});}
+let _tt;
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2800);}
+
+
+// ══════════════════════════════════════════════════════════════════
+// REDES SOCIALES
+// ══════════════════════════════════════════════════════════════════
+let _activePlatforms = new Set(['linkedin','instagram','tiktok']);
+let _pubMode = 'now';
+
+async function loadSocialTokens(){
+  try{
+    const tokens = await (await fetch(API+'/social/tokens')).json();
+    const platforms = {linkedin:{el:'li-status',name:'LinkedIn'},instagram:{el:'ig-status',name:'Instagram'},tiktok:{el:'tt-status',name:'TikTok'}};
+    for(const [p,info] of Object.entries(platforms)){
+      const el = document.getElementById(info.el);
+      if(tokens[p]){
+        el.innerHTML = `<span style="color:var(--green)">✓ Conectado</span><br><span style="font-size:10px;color:var(--gray-2)">${tokens[p].user_id||''}</span>`;
+      }
+    }
+  }catch{}
+}
+
+function togglePlatform(p){
+  const btn = document.getElementById('plt-'+p.slice(0,2));
+  if(_activePlatforms.has(p)){
+    _activePlatforms.delete(p);
+    btn.style.color='var(--gray)';
+    btn.textContent='○ '+p.charAt(0).toUpperCase()+p.slice(1);
+  } else {
+    _activePlatforms.add(p);
+    btn.style.color='var(--pink)';
+    btn.textContent='✓ '+p.charAt(0).toUpperCase()+p.slice(1);
+  }
+}
+
+function setPubMode(mode){
+  _pubMode = mode;
+  document.getElementById('pub-now-btn').style.color = mode==='now'?'var(--pink)':'var(--gray)';
+  document.getElementById('pub-sch-btn').style.color = mode==='schedule'?'var(--pink)':'var(--gray)';
+  document.getElementById('schedule-picker').style.display = mode==='schedule'?'block':'none';
+  document.getElementById('pub-btn-txt').textContent = mode==='now'?'Publicar en redes':'Programar publicación';
+}
+
+async function generateSocialContent(){
+  const topic = document.getElementById('soc-topic').value;
+  const net   = document.getElementById('soc-net').value;
+  const custom= document.getElementById('soc-custom').value.trim();
+  ld('soc-gen',1);
+  const topics = {
+    caso_bara: 'el caso de éxito de Bara & Co donde logramos +312% de conversión en ecommerce de moda en 6 semanas',
+    tip_ux: 'un tip práctico de UX/UI para mejorar conversión en ecommerce',
+    error_ecommerce: 'un error común de UX en ecommerce argentino que mata las ventas',
+    antes_despues: 'el antes y después de un rediseño web con métricas reales',
+    proceso: 'cómo trabajamos en DiazUX Studio: del brief al lanzamiento',
+    custom: custom || 'nuestros servicios de diseño UX/UI'
+  };
+  const netStyles = {
+    linkedin: 'estilo profesional, con métricas, insights y llamada a la acción para agendar llamada. Incluir 3-5 hashtags profesionales. Máximo 1300 caracteres.',
+    instagram: 'estilo inspiracional y visual, con emojis moderados, storytelling, llamada a la acción para el link en bio. Incluir 10-15 hashtags relevantes. Máximo 2200 caracteres.',
+    tiktok: 'estilo educativo y entretenido, con gancho fuerte en la primera línea, bullets cortos, lenguaje joven pero profesional. Máximo 300 caracteres para el caption.'
+  };
+  try{
+    const raw = await callOllama(`Redactá una publicación para ${net} sobre: ${topics[topic]}.
+Somos DiazUX Studio, agencia de UX/diseño web en Argentina. Tono: ${netStyles[net]}
+Escribí en español rioplatense (tuteo). Hacelo genuino, no corporativo.
+SOLO JSON: {"content":"texto completo del post listo para publicar"}`);
+    const d = pj(raw);
+    if(d && d.content) document.getElementById('soc-content').value = d.content;
+    else throw new Error('Sin respuesta');
+  }catch(e){toast('Error generando: '+e.message);}
+  ld('soc-gen',0);
+}
+
+async function handleImageUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const formData = new FormData();
+  formData.append('image', file);
+  try{
+    const r = await fetch(API+'/social/upload', {method:'POST', body:formData});
+    const d = await r.json();
+    if(d.ok){
+      document.getElementById('soc-img-path').value = d.path;
+      const isVideo = file.type.startsWith('video/');
+      document.getElementById('img-preview').innerHTML = isVideo
+        ? `<video src="${d.url}" style="max-height:120px;max-width:100%;" controls></video><div style="font-size:11px;color:var(--green);margin-top:6px;">✓ ${file.name}</div>`
+        : `<img src="${d.url}" style="max-height:120px;max-width:100%;object-fit:contain;" /><div style="font-size:11px;color:var(--green);margin-top:6px;">✓ ${file.name}</div>`;
+    } else toast('Error subiendo imagen: '+d.error);
+  }catch(e){toast('Error: '+e.message);}
+}
+
+async function publishSocial(){
+  const content = document.getElementById('soc-content').value.trim();
+  if(!content) return toast('Escribí o generá el contenido primero');
+  if(_activePlatforms.size===0) return toast('Seleccioná al menos una plataforma');
+  const image_path = document.getElementById('soc-img-path').value;
+  ld('soc-pub',1); document.getElementById('soc-pub-result').innerHTML=''; cerr('err-soc');
+
+  try{
+    if(_pubMode==='schedule'){
+      const scheduledAt = document.getElementById('soc-schedule').value;
+      if(!scheduledAt) return toast('Seleccioná fecha y hora');
+      const schedDate = scheduledAt.replace('T',' ');
+      let ok=0;
+      for(const p of _activePlatforms){
+        const r = await fetch(API+'/social/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:p,content,image_path,scheduled_at:schedDate})});
+        const d = await r.json();
+        if(d.ok) ok++;
+      }
+      document.getElementById('soc-pub-result').innerHTML=`<div style="color:var(--green);font-size:13px;">✓ ${ok} publicaciones programadas para ${scheduledAt.replace('T',' ')}</div>`;
+      loadSocialHistory();
+    } else {
+      const r = await fetch(API+'/social/publish-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content,image_path,platforms:[..._activePlatforms]})});
+      const d = await r.json();
+      let html = '';
+      for(const [p,res] of Object.entries(d.results||{})){
+        if(res.ok){
+          html+=`<div style="color:var(--green);font-size:13px;padding:4px 0;">✓ ${p} — <a href="${res.url}" target="_blank" style="color:var(--pink);">Ver publicación →</a></div>`;
+        } else {
+          html+=`<div style="color:var(--red);font-size:13px;padding:4px 0;">✗ ${p} — ${res.error}</div>`;
+        }
+      }
+      if(!html) html='<div style="color:var(--amber);font-size:13px;">Conectá las redes primero en la sección de conexiones.</div>';
+      document.getElementById('soc-pub-result').innerHTML=html;
+      loadSocialHistory();
+    }
+  }catch(e){err('err-soc','Error: '+e.message);}
+  ld('soc-pub',0);
+}
+
+async function loadSocialHistory(){
+  try{
+    const posts = await (await fetch(API+'/social/posts')).json();
+    const el = document.getElementById('social-history');
+    if(!posts.length){el.innerHTML='<div style="color:var(--gray);font-size:13px;">Sin publicaciones todavía</div>';return;}
+    const statusColors={'published':'var(--green)','scheduled':'var(--amber)','draft':'var(--gray)','error':'var(--red)','publishing':'var(--blue)'};
+    el.innerHTML=posts.slice(0,20).map(p=>`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(242,170,191,.05);">
+        <div style="flex:1;">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+            <span class="tag" style="color:${statusColors[p.status]||'var(--gray)'};border-color:rgba(255,255,255,.1);">${p.status.toUpperCase()}</span>
+            <span class="tag tg">${p.platform}</span>
+            <span style="font-size:11px;color:var(--gray);">${p.published_at||p.scheduled_at||p.created_at}</span>
+          </div>
+          <div style="font-size:12px;color:var(--gray);line-height:1.5;">${(p.content||'').slice(0,120)}${p.content?.length>120?'...':''}</div>
+          ${p.post_url?`<a href="${p.post_url}" target="_blank" style="font-size:11px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Ver post →</a>`:''}
+          ${p.error?`<div style="font-size:11px;color:var(--red);margin-top:3px;">${p.error}</div>`:''}
+        </div>
+        <button class="btn-s btn-r" onclick="deleteSocialPost('${p.id}')" style="flex-shrink:0;margin-left:8px;">×</button>
+      </div>`).join('');
+  }catch{}
+}
+
+async function deleteSocialPost(id){
+  await fetch(API+'/social/posts/'+id,{method:'DELETE'});
+  loadSocialHistory(); toast('Post eliminado');
+}
+
+async function connectLinkedIn(){
+  const r = await (await fetch(API+'/social/auth/linkedin')).json();
+  if(r.ok) window.open(r.auth_url,'_blank','width=600,height=700');
+  else toast('Error: '+r.error);
+}
+
+async function connectInstagram(){
+  const r = await (await fetch(API+'/social/auth/instagram')).json();
+  if(r.ok) window.open(r.auth_url,'_blank','width=600,height=700');
+  else toast('Error: '+r.error);
+}
+
+function saveTikTokToken(){
+  document.getElementById('tt-token-form').style.display='block';
+}
+
+async function saveManualTikTok(){
+  const token = document.getElementById('tt-tok-inp').value.trim();
+  const uid   = document.getElementById('tt-uid-inp').value.trim();
+  if(!token) return toast('Ingresá el token');
+  const r = await fetch(API+'/social/tokens',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:'tiktok',access_token:token,user_id:uid})});
+  const d = await r.json();
+  if(d.ok){
+    document.getElementById('tt-token-form').style.display='none';
+    document.getElementById('tt-status').innerHTML='<span style="color:var(--green)">✓ Conectado</span>';
+    toast('✓ Token TikTok guardado');
+  }
+}
+// ══════════════════════════════════════════════════════════════════
+
+async function saveSocialCfg(){
+  const data={
+    linkedin_client_id:document.getElementById('cfg-li-id').value.trim(),
+    linkedin_client_secret:document.getElementById('cfg-li-sec').value.trim(),
+    meta_app_id:document.getElementById('cfg-meta-id').value.trim(),
+    meta_app_secret:document.getElementById('cfg-meta-sec').value.trim()
+  };
+  try{
+    await fetch(API+'/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const st=document.getElementById('soc-cfg-st');
+    if(st){st.style.display='block';setTimeout(()=>st.style.display='none',3000);}
+    toast('✓ API Keys guardadas');
+  }catch(e){toast('Error guardando: '+e.message);}
+}
+// ENTER KEYS
+document.getElementById('f-dom').addEventListener('keydown',e=>e.key==='Enter'&&findDomain());
+document.getElementById('f-nd').addEventListener('keydown',e=>e.key==='Enter'&&findName());
+document.getElementById('v-em').addEventListener('keydown',e=>e.key==='Enter'&&verifyEm());
+document.getElementById('au-url').addEventListener('keydown',e=>e.key==='Enter'&&audit());
+</script>
+</body>
+</html>
