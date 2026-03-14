@@ -66,7 +66,17 @@ def score(p):
 def get_cfg():
     conn = get_db()
     r = {row['key']: row['value'] for row in conn.execute('SELECT key,value FROM config').fetchall()}
-    conn.close(); return r
+    conn.close()
+    env_map = {
+        'meta_app_id':'META_APP_ID','meta_app_secret':'META_APP_SECRET',
+        'linkedin_client_id':'LINKEDIN_CLIENT_ID','linkedin_client_secret':'LINKEDIN_CLIENT_SECRET',
+        'ollama_url':'OLLAMA_URL','model':'OLLAMA_MODEL',
+        'smtp_host':'SMTP_HOST','smtp_port':'SMTP_PORT','smtp_user':'SMTP_USER','smtp_pass':'SMTP_PASS',
+    }
+    for key,env in env_map.items():
+        val=os.environ.get(env)
+        if val: r[key]=val
+    return r
 
 # ── CONFIG ───────────────────────────────────────────────────────
 @app.route('/api/config', methods=['GET','POST'])
