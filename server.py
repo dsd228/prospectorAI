@@ -485,4 +485,6 @@ def index(): return send_file('index.html')
 if __name__=='__main__':
     threading.Thread(target=scheduler_loop,daemon=True).start()
     print('\n'+'='*50+'\n  ProspectorAI — DiazUX Studio\n  http://localhost:5000\n'+'='*50+'\n')
-    app.run(debug=False,port=5000,host='0.0.0.0')
+    import os
+
+app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
