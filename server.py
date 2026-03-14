@@ -13,7 +13,7 @@ import urllib.request, urllib.parse
 app = Flask(__name__, static_folder='.')
 CORS(app)
 DB_PATH = 'prospector.db'
-BASE_URL = os.environ.get('BASE_URL', 'https://unarrogated-unfractious-todd.ngrok-free.dev')
+BASE_URL = os.environ.get('BASE_URL', 'https://prospectorai.onrender.com')
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -452,19 +452,9 @@ def instagram_callback():
     code=request.args.get('code'); cfg=get_cfg()
     if not code: return '<script>window.close()</script>'
     try:
-        redirect_uri = f'{BASE_URL}/api/social/auth/instagram/callback'
-        app_id = cfg.get('meta_app_id','')
-        app_secret = cfg.get('meta_app_secret','')
-        print(f'DEBUG IG - App ID: {app_id}')
-        print(f'DEBUG IG - Redirect URI: {redirect_uri}')
-        data=urllib.parse.urlencode({'client_id':app_id,'client_secret':app_secret,'redirect_uri':redirect_uri,'code':code}).encode()
+        data=urllib.parse.urlencode({'client_id':cfg.get('meta_app_id',''),'client_secret':cfg.get('meta_app_secret',''),'redirect_uri':f'{BASE_URL}/api/social/auth/instagram/callback','code':code}).encode()
         req=urllib.request.Request('https://graph.facebook.com/v18.0/oauth/access_token',data=data,method='POST')
-        try:
-            with urllib.request.urlopen(req) as r: tok=json.loads(r.read())
-        except urllib.error.HTTPError as http_err:
-            err_body=http_err.read().decode('utf-8')
-            print(f'DEBUG IG - Facebook error {http_err.code}: {err_body}')
-            return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error Facebook {http_err.code}:</h2><pre style="color:#fbbf24;font-size:14px;">{err_body}</pre></body></html>'
+        with urllib.request.urlopen(req) as r: tok=json.loads(r.read())
         token=tok['access_token']
         req2=urllib.request.Request(f'https://graph.facebook.com/v18.0/me/accounts?access_token={token}')
         with urllib.request.urlopen(req2) as r: pages=json.loads(r.read())
@@ -476,8 +466,7 @@ def instagram_callback():
         conn=get_db(); conn.execute('INSERT OR REPLACE INTO social_tokens VALUES (?,?,?,?,?,?)',('instagram',token,'','',ig_id,'{}')); conn.commit(); conn.close()
         return '<html><body style="background:#080808;color:#F2AABF;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><h2>✓ Instagram conectado. Podés cerrar esta ventana.</h2></body></html>'
     except Exception as e:
-        print(f'DEBUG IG - Exception: {e}')
-        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;"><h2>Error:</h2><pre style="color:#fbbf24;font-size:14px;">{e}</pre></body></html>'
+        return f'<html><body style="background:#080808;color:#f87171;font-family:sans-serif;padding:40px;">Error: {e}</body></html>'
 
 @app.route('/')
 def index(): return send_file('index.html')
@@ -485,6 +474,4 @@ def index(): return send_file('index.html')
 if __name__=='__main__':
     threading.Thread(target=scheduler_loop,daemon=True).start()
     print('\n'+'='*50+'\n  ProspectorAI — DiazUX Studio\n  http://localhost:5000\n'+'='*50+'\n')
-    import os
-
-app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=False,port=5000,host='0.0.0.0')
