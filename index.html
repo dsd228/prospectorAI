@@ -1041,8 +1041,67 @@ async function openDetail(id){
     h+=`<div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin:16px 0 10px;">Actividad</div>`;
     h+=acts.map(a=>`<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(242,170,191,.04);font-size:12px;"><span style="color:var(--gray);min-width:130px;font-family:var(--font-m);">${a.date}</span><span style="color:var(--gray);">${a.description}</span></div>`).join('');
   }
+  // Botón DM Instagram
+  h += `<div style="margin-top:20px;border-top:1px solid rgba(242,170,191,.1);padding-top:16px;">
+    <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:10px;">📩 Instagram DM</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input id="dm-ig-user" placeholder="@usuario de Instagram" style="flex:1;background:var(--black-3);border:1px solid rgba(242,170,191,.15);color:var(--white);padding:8px 12px;font-size:13px;font-family:var(--font-m);" />
+    </div>
+    <textarea id="dm-ig-msg" rows="3" placeholder="Escribí el mensaje..." style="width:100%;background:var(--black-3);border:1px solid rgba(242,170,191,.15);color:var(--white);padding:10px 12px;font-size:13px;font-family:var(--font-m);resize:vertical;box-sizing:border-box;margin-bottom:8px;"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-s" onclick="generateDMText('${ps.brand}','${(ps.problem||'').replace(/'/g,String.fromCharCode(92)+String.fromCharCode(39))}')">✨ Generar con IA</button>
+      <button class="btn" onclick="sendInstagramDM()" style="padding:8px 18px;"><span id="dm-send-txt">Enviar DM →</span></button>
+      <span id="dm-status" style="font-size:12px;color:var(--gray);"></span>
+    </div>
+  </div>`;
+
   document.getElementById('dm-content').innerHTML=h;
   document.getElementById('detail-modal').classList.add('on');
+}
+
+async function generateDMText(brand, problem){
+  const btn = document.querySelector('[onclick*="generateDMText"]');
+  const orig = btn.textContent;
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    const raw = await callOllama(`Redactá un mensaje directo de Instagram en español rioplatense, informal y breve (máx 3 oraciones), de parte de DiazUX Studio a la marca "${brand}". Problema detectado: "${problem||'sitio web desactualizado'}". Presentate, mencioná el problema y ofrecé una auditoría gratis. Solo el texto del mensaje, sin comillas ni aclaraciones.`);
+    document.getElementById('dm-ig-msg').value = raw.trim();
+  } catch(e){ toast('Error generando mensaje'); }
+  btn.textContent = orig;
+  btn.disabled = false;
+}
+
+async function sendInstagramDM(){
+  const username = document.getElementById('dm-ig-user').value.trim().replace('@','');
+  const message  = document.getElementById('dm-ig-msg').value.trim();
+  const status   = document.getElementById('dm-status');
+  const btn      = document.getElementById('dm-send-txt');
+  if(!username) return toast('Ingresá el @usuario de Instagram');
+  if(!message)  return toast('Escribí el mensaje');
+  btn.textContent = 'Enviando...';
+  status.textContent = '';
+  try {
+    const res = await fetch(API+'/social/instagram/dm', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, message})
+    }).then(r=>r.json());
+    if(res.ok){
+      status.style.color = 'var(--pink)';
+      status.textContent = '✓ DM enviado';
+      document.getElementById('dm-ig-msg').value = '';
+      document.getElementById('dm-ig-user').value = '';
+      toast('DM enviado a @'+username);
+    } else {
+      status.style.color = '#f87171';
+      status.textContent = '✗ '+res.error;
+    }
+  } catch(e){
+    status.style.color = '#f87171';
+    status.textContent = '✗ Error de red';
+  }
+  btn.textContent = 'Enviar DM →';
 }
 
 // ── PIPELINE ─────────────────────────────────────────────────────
