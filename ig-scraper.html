@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prospector — DiazUX</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{--pink:#F2AABF;--black:#060606;--black-2:#0e0e0e;--black-3:#161616;--white:#efefef;--gray:#555;--green:#4ade80;--red:#f87171;--yellow:#fbbf24;--font-t:'Syne',sans-serif;--font-m:'Space Mono',monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--black);color:var(--white);font-family:var(--font-m);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(242,170,191,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(242,170,191,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.wrap{max-width:900px;margin:0 auto;padding:40px 20px;position:relative;z-index:1;}
+header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:48px;border-bottom:1px solid rgba(242,170,191,.1);padding-bottom:24px;}
+.logo{font-family:var(--font-t);font-size:28px;font-weight:800;letter-spacing:-.02em;}
+.logo span{color:var(--pink);}
+.logo-sub{font-size:10px;color:var(--gray);letter-spacing:.2em;text-transform:uppercase;margin-top:2px;}
+.status-dot{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--gray);letter-spacing:.1em;text-transform:uppercase;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:background .3s;}
+.dot.on{background:var(--green);box-shadow:0 0 8px var(--green);}
+.dot.err{background:var(--red);}
+.section{margin-bottom:32px;}
+.sec-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--pink);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.sec-label::after{content:'';flex:1;height:1px;background:rgba(242,170,191,.1);}
+.card{background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.fld:last-child{margin-bottom:0;}
+label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gray);}
+input,select,textarea{background:var(--black-3);border:1px solid rgba(242,170,191,.12);color:var(--white);padding:10px 12px;font-size:12px;font-family:var(--font-m);width:100%;outline:none;transition:border-color .2s;}
+input:focus,select:focus{border-color:rgba(242,170,191,.4);}
+input[type=password]{letter-spacing:.15em;}
+input[type=checkbox]{width:auto;margin:0;}
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--gray);cursor:pointer;}
+.modes{display:flex;gap:0;margin-bottom:16px;}
+.mode{flex:1;padding:11px;text-align:center;font-size:11px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(242,170,191,.1);color:var(--gray);transition:all .2s;}
+.mode:not(:last-child){border-right:none;}
+.mode.on{background:rgba(242,170,191,.06);border-color:rgba(242,170,191,.3);color:var(--pink);}
+.btn{background:var(--pink);color:#000;border:none;padding:12px 28px;font-family:var(--font-t);font-weight:800;font-size:13px;letter-spacing:.05em;cursor:pointer;width:100%;transition:opacity .2s;}
+.btn:hover{opacity:.85;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-o{background:transparent;border:1px solid rgba(242,170,191,.25);color:var(--pink);padding:9px 16px;font-family:var(--font-m);font-size:11px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;white-space:nowrap;}
+.btn-o:hover{border-color:var(--pink);background:rgba(242,170,191,.05);}
+.btn-sm{background:transparent;border:1px solid rgba(242,170,191,.15);color:var(--gray);padding:5px 10px;font-size:10px;font-family:var(--font-m);cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;}
+.btn-sm:hover{color:var(--pink);border-color:rgba(242,170,191,.3);}
+.log{background:var(--black-3);border:1px solid rgba(242,170,191,.06);padding:14px;font-size:11px;line-height:1.9;max-height:180px;overflow-y:auto;}
+.log .ok{color:var(--green);}
+.log .warn{color:var(--yellow);}
+.log .err{color:var(--red);}
+.log .info{color:var(--white);}
+.progress-wrap{margin:10px 0;display:none;}
+.progress-bar{height:2px;background:rgba(242,170,191,.1);}
+.progress-fill{height:100%;background:var(--pink);width:0%;transition:width .4s;}
+.progress-txt{font-size:10px;color:var(--gray);margin-top:5px;letter-spacing:.1em;}
+.results-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
+.count-badge{background:rgba(242,170,191,.1);color:var(--pink);font-size:11px;padding:4px 12px;letter-spacing:.1em;white-space:nowrap;}
+.prospect-list{display:flex;flex-direction:column;gap:6px;max-height:500px;overflow-y:auto;padding-right:4px;}
+.pi{background:var(--black-2);border:1px solid rgba(242,170,191,.06);padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;transition:border-color .2s;}
+.pi:hover{border-color:rgba(242,170,191,.15);}
+.pi.selected{border-color:rgba(242,170,191,.3);background:rgba(242,170,191,.02);}
+.pi-name{font-family:var(--font-t);font-weight:700;font-size:13px;margin-bottom:2px;}
+.pi-user{font-size:11px;color:var(--pink);margin-bottom:4px;cursor:pointer;}
+.pi-user:hover{text-decoration:underline;}
+.pi-problem{font-size:11px;color:var(--gray);line-height:1.5;margin-bottom:6px;}
+.pi-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border:1px solid rgba(242,170,191,.12);color:var(--gray);}
+.tag.g{border-color:rgba(74,222,128,.25);color:var(--green);}
+.tag.p{border-color:rgba(242,170,191,.25);color:var(--pink);}
+.tag.ar{border-color:rgba(251,191,36,.25);color:var(--yellow);}
+.pi-check{width:20px;height:20px;border:1px solid rgba(242,170,191,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;flex-shrink:0;margin-top:2px;transition:all .15s;}
+.pi-check.on{background:var(--pink);color:#000;border-color:var(--pink);}
+.screenshot-wrap{margin-top:8px;display:none;}
+.screenshot-wrap img{width:100%;max-height:200px;object-fit:cover;border:1px solid rgba(242,170,191,.1);}
+.dm-wrap{margin-top:8px;display:none;}
+.dm-wrap textarea{font-size:11px;padding:8px 10px;min-height:60px;}
+.dm-wrap .dm-actions{display:flex;gap:6px;margin-top:6px;}
+.favs-list{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:var(--black-3);padding:10px 14px;border:1px solid rgba(242,170,191,.06);font-size:11px;}
+.fav-name{color:var(--white);font-weight:700;}
+.fav-meta{color:var(--gray);font-size:10px;margin-top:2px;}
+.export-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.export-row .btn{flex:2;min-width:200px;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:var(--black-2);}::-webkit-scrollbar-thumb{background:rgba(242,170,191,.2);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.scanning{animation:pulse 1.5s ease-in-out infinite;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="logo">DIAZ<span>UX</span></div>
+    <div class="logo-sub">Instagram + LinkedIn Prospector</div>
+  </div>
+  <div class="status-dot">
+    <div class="dot" id="ig-dot"></div>
+    <span id="ig-status">Sin sesión</span>
+  </div>
+</header>
+
+
+<!-- PLATFORM TABS -->
+<div class="section">
+  <div class="modes" id="platform-tabs">
+    <div class="mode on" onclick="setPlatform('ig')" id="ptab-ig">📸 Instagram</div>
+    <div class="mode" onclick="setPlatform('li')" id="ptab-li">💼 LinkedIn</div>
+    <div class="mode" onclick="setPlatform('both')" id="ptab-both">⚡ Ambos</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="section" id="sec-login">
+  <div class="sec-label">Cuenta de Instagram</div>
+  <div class="card">
+    <div class="row">
+      <div class="fld"><label>Usuario</label><input id="ig-user" placeholder="diazuxstudio"/></div>
+      <div class="fld"><label>Contraseña</label><input id="ig-pass" type="password" placeholder="••••••••"/></div>
+    </div>
+    <div class="fld">
+      <label>URL ProspectorAI</label>
+      <input id="prospector-url" value="https://prospectorai.onrender.com"/>
+    </div>
+    <button class="btn" id="btn-login" onclick="doLogin()">Iniciar sesión →</button>
+  </div>
+</div>
+
+<!-- BÚSQUEDA -->
+<div class="section" id="sec-search" style="display:none;">
+  <div class="sec-label">Búsqueda</div>
+  <div class="card">
+    <div class="modes">
+      <div class="mode on" onclick="setMode('hashtag')">◈ Hashtag</div>
+      <div class="mode" onclick="setMode('followers')">◉ Seguidores</div>
+      <div class="mode" onclick="setMode('combined')">◈◉ Combinado</div>
+    </div>
+    <div id="form-hashtag">
+      <div class="row">
+        <div class="fld"><label>Hashtag (sin #)</label><input id="s-hashtag" placeholder="ecommercear"/></div>
+        <div class="fld"><label>Posts a analizar</label><input id="s-hq" type="number" value="30" min="5" max="100"/></div>
+      </div>
+    </div>
+    <div id="form-followers" style="display:none;">
+      <div class="row">
+        <div class="fld"><label>@Cuenta competidora</label><input id="s-account" placeholder="tiendanube"/></div>
+        <div class="fld"><label>Seguidores a analizar</label><input id="s-fq" type="number" value="50" min="10" max="200"/></div>
+      </div>
+    </div>
+    <div id="form-combined" style="display:none;">
+      <div class="row">
+        <div class="fld"><label>Hashtag (sin #)</label><input id="s-hashtag2" placeholder="ecommercear"/></div>
+        <div class="fld"><label>@Cuenta competidora</label><input id="s-account2" placeholder="tiendanube"/></div>
+      </div>
+    </div>
+    <div class="row4" style="margin-bottom:12px;">
+      <div class="fld"><label>Mín. seguidores</label><input id="f-min" type="number" value="100"/></div>
+      <div class="fld"><label>Máx. seguidores</label><input id="f-max" type="number" value="500000"/></div>
+      <div class="fld"><label>Sitio web</label>
+        <select id="f-web"><option value="any">Cualquiera</option><option value="no">Sin web</option><option value="yes">Con web</option></select>
+      </div>
+      <div class="fld"><label>País</label>
+        <select id="f-ar"><option value="any">Todos</option><option value="ar">Solo Argentina 🇦🇷</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+      <button class="btn" id="btn-search" onclick="doSearch()" style="flex:1;">◈ Buscar prospectos</button>
+      <button class="btn-o" onclick="saveFavorite()">★ Guardar búsqueda</button>
+    </div>
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-txt" id="progress-txt"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAVORITOS -->
+<div class="section" id="sec-favs" style="display:none;">
+  <div class="sec-label">Búsquedas guardadas</div>
+  <div class="favs-list" id="favs-list"></div>
+</div>
+
+
+<!-- LINKEDIN LOGIN -->
+<div class="section" id="sec-li-login" style="display:none;">
+  <div class="sec-label">Cuenta de LinkedIn</div>
+  <div class="card">
+    <div class="row">
+      <div class="fld"><label>Email</label><input id="li-email" placeholder="tu@email.com" type="email"/></div>
+      <div class="fld"><label>Contraseña</label><input id="li-pass" type="password" placeholder="••••••••"/></div>
+    </div>
+    <div style="font-size:11px;color:var(--yellow);margin-bottom:12px;">⚠ Se abrirá una ventana del navegador para el login — completá cualquier verificación que pida LinkedIn</div>
+    <button class="btn" id="btn-li-login" onclick="doLiLogin()">Conectar LinkedIn →</button>
+  </div>
+</div>
+
+<!-- LINKEDIN SEARCH -->
+<div class="section" id="sec-li-search" style="display:none;">
+  <div class="sec-label">Búsqueda en LinkedIn</div>
+  <div class="card">
+    <div class="row">
+      <div class="fld"><label>Rubro / Palabras clave</label><input id="li-query" placeholder="ecommerce, tienda online, retail"/></div>
+      <div class="fld"><label>Ubicación</label><input id="li-location" placeholder="Argentina" value="Argentina"/></div>
+    </div>
+    <div class="row">
+      <div class="fld"><label>Cantidad de resultados</label><input id="li-amount" type="number" value="20" min="5" max="50"/></div>
+      <div class="fld"><label>País</label>
+        <select id="li-ar"><option value="any">Todos</option><option value="ar" selected>Solo Argentina 🇦🇷</option></select>
+      </div>
+    </div>
+    <button class="btn" id="btn-li-search" onclick="doLiSearch()">💼 Buscar en LinkedIn</button>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="section" id="sec-log" style="display:none;">
+  <div class="sec-label">Actividad</div>
+  <div class="log" id="log"></div>
+</div>
+
+<!-- RESULTADOS -->
+<div class="section" id="sec-results" style="display:none;">
+  <div class="results-hdr">
+    <div class="sec-label" style="margin:0;flex:1;">Prospectos encontrados</div>
+    <span class="count-badge" id="result-count">0</span>
+    <button class="btn-o" onclick="selectAll()">Todos</button>
+    <button class="btn-o" onclick="selectNone()">Ninguno</button>
+  </div>
+  <div class="prospect-list" id="prospect-list"></div>
+  <div class="export-row">
+    <button class="btn" id="btn-export" onclick="doExport()">↑ Exportar seleccionados a ProspectorAI</button>
+    <button class="btn-o" onclick="downloadJSON()">↓ JSON</button>
+    <button class="btn-o" onclick="downloadCSV()">↓ CSV</button>
+  </div>
+  <div class="log" id="export-log" style="margin-top:10px;display:none;"></div>
+</div>
+
+</div>
+<script>
+const BACKEND = 'http://localhost:8765';
+let prospects = [], mode = 'hashtag';
+
+// ── UI ───────────────────────────────────────────────────────────
+function setMode(m){
+  mode = m;
+  ['hashtag','followers','combined'].forEach((id,i)=>{
+    document.querySelectorAll('.mode')[i].classList.toggle('on',id===m);
+    const f = document.getElementById('form-'+id);
+    if(f) f.style.display = (id===m||(m==='combined'&&(id==='hashtag'||id==='followers')))?'block':'none';
+  });
+  if(m!=='combined'){
+    document.getElementById('form-hashtag').style.display  = m==='hashtag'  ?'block':'none';
+    document.getElementById('form-followers').style.display = m==='followers'?'block':'none';
+  } else {
+    document.getElementById('form-combined').style.display = 'block';
+    document.getElementById('form-hashtag').style.display  = 'none';
+    document.getElementById('form-followers').style.display = 'none';
+  }
+}
+
+function log(msg,type='info'){
+  const el=document.getElementById('log');
+  document.getElementById('sec-log').style.display='block';
+  const d=document.createElement('div');
+  d.className=type; d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+
+function exportLog(msg,type='info'){
+  const el=document.getElementById('export-log');
+  el.style.display='block';
+  const d=document.createElement('div'); d.className=type; d.textContent=msg;
+  el.appendChild(d);
+}
+
+function setProgress(pct,txt){
+  const w=document.getElementById('progress-wrap');
+  w.style.display=pct>0?'block':'none';
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-txt').textContent=txt;
+}
+
+// ── LOGIN ────────────────────────────────────────────────────────
+async function doLogin(){
+  const user=document.getElementById('ig-user').value.trim();
+  const pass=document.getElementById('ig-pass').value.trim();
+  if(!user||!pass)return alert('Ingresá usuario y contraseña');
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true; btn.textContent='Conectando...';
+  log('Iniciando sesión con @'+user+'...');
+  try{
+    const r=await fetch(BACKEND+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    const d=await r.json();
+    if(d.ok){
+      document.getElementById('ig-dot').className='dot on';
+      document.getElementById('ig-status').textContent='@'+user;
+      document.getElementById('sec-search').style.display='block';
+      log('✓ Login exitoso — @'+user,'ok');
+      btn.textContent='✓ Conectado';
+      loadFavorites();
+    } else throw new Error(d.error);
+  }catch(e){
+    log('✗ '+e.message,'err');
+    document.getElementById('ig-dot').className='dot err';
+    btn.disabled=false; btn.textContent='Reintentar →';
+  }
+}
+
+// ── SEARCH ───────────────────────────────────────────────────────
+async function doSearch(){
+  if(currentPlatform==='both'){ await doSearchBoth(); return; }
+  
+  const btn=document.getElementById('btn-search');
+  btn.disabled=true; btn.textContent='Buscando...'; btn.classList.add('scanning');
+  prospects=[]; document.getElementById('sec-results').style.display='none';
+  const params={
+    mode,
+    hashtag: (document.getElementById('s-hashtag')?.value||document.getElementById('s-hashtag2')?.value||'').trim(),
+    account: (document.getElementById('s-account')?.value||document.getElementById('s-account2')?.value||'').trim().replace('@',''),
+    hq: parseInt(document.getElementById('s-hq')?.value||30),
+    fq: parseInt(document.getElementById('s-fq')?.value||50),
+    min_followers: parseInt(document.getElementById('f-min').value||100),
+    max_followers: parseInt(document.getElementById('f-max').value||500000),
+    filter_web: document.getElementById('f-web').value,
+    only_ar: document.getElementById('f-ar').value==='ar'
+  };
+  log('Buscando — modo: '+mode+(params.only_ar?' · Solo Argentina 🇦🇷':''));
+  setProgress(10,'Conectando con Instagram...');
+  try{
+    const r=await fetch(BACKEND+'/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+    const d=await r.json();
+    if(d.ok){
+      prospects=d.prospects;
+      setProgress(100,'Completado');
+      log(`✓ ${prospects.length} prospectos encontrados`,'ok');
+      renderProspects();
+      setTimeout(()=>setProgress(0,''),2000);
+    } else throw new Error(d.error);
+  }catch(e){
+    log('✗ '+e.message,'err');
+    setProgress(0,'');
+  }
+  btn.disabled=false; btn.textContent='◈ Buscar prospectos'; btn.classList.remove('scanning');
+}
+
+// ── RENDER PROSPECTS ─────────────────────────────────────────────
+function renderProspects(){
+  const list=document.getElementById('prospect-list');
+  document.getElementById('result-count').textContent=prospects.length+' encontrados';
+  document.getElementById('sec-results').style.display='block';
+  list.innerHTML=prospects.map((p,i)=>`
+    <div class="pi selected" id="pi-${i}">
+      <div>
+        <div class="pi-name">${p.brand}</div>
+        <div class="pi-user" onclick="openIG('${p.ig_username}')">@${p.ig_username} · ${(p.followers||0).toLocaleString()} seg.</div>
+        <div class="pi-problem">${p.problem}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+          ${p.email?`<span class="tag g">✓ ${p.email}</span>`:'<span class="tag">sin email</span>'}
+          ${p.url?`<span class="tag p">🌐 web</span>`:'<span class="tag">sin web</span>'}
+          ${p.is_ar?'<span class="tag ar">🇦🇷 AR</span>':''}
+        </div>
+        <div class="pi-actions">
+          ${p.url?`<button class="btn-sm" onclick="doScreenshot(${i},'${p.url}')">📸 Captura</button>`:''}
+          <button class="btn-sm" onclick="toggleDM(${i})">✉ DM</button>
+          <button class="btn-sm" onclick="openIG('${p.ig_username}')">↗ Instagram</button>
+        </div>
+        <div class="screenshot-wrap" id="ss-${i}"><div style="font-size:10px;color:var(--gray);padding:8px;">Cargando captura...</div></div>
+        <div class="dm-wrap" id="dm-${i}">
+          <textarea id="dm-txt-${i}" placeholder="Escribí o generá el DM con Ollama...">${generateDMPreview(p)}</textarea>
+          <div class="dm-actions">
+            <button class="btn-sm" onclick="copyDM(${i})">Copiar DM</button>
+            <button class="btn-sm" onclick="openIG('${p.ig_username}')">Abrir en IG →</button>
+          </div>
+        </div>
+      </div>
+      <div class="pi-check on" id="chk-${i}" onclick="toggleSelect(${i})">✓</div>
+    </div>`).join('');
+}
+
+function generateDMPreview(p){
+  return `Hola ${p.brand}! 👋 Vi tu cuenta en Instagram y noté que ${p.problem}. En DiazUX Studio ayudamos a negocios como el tuyo a tener una presencia digital profesional. ¿Te interesaría una auditoría web gratis? 🚀`;
+}
+
+function openIG(username){ window.open(`https://www.instagram.com/${username}/`,'_blank'); }
+
+function toggleSelect(i){
+  const pi=document.getElementById('pi-'+i), chk=document.getElementById('chk-'+i);
+  pi.classList.toggle('selected'); chk.classList.toggle('on');
+  chk.textContent=chk.classList.contains('on')?'✓':'';
+}
+function selectAll(){ prospects.forEach((_,i)=>{ document.getElementById('pi-'+i)?.classList.add('selected'); const c=document.getElementById('chk-'+i); if(c){c.classList.add('on');c.textContent='✓';} }); }
+function selectNone(){ prospects.forEach((_,i)=>{ document.getElementById('pi-'+i)?.classList.remove('selected'); const c=document.getElementById('chk-'+i); if(c){c.classList.remove('on');c.textContent='';} }); }
+
+async function doScreenshot(i, url){
+  const wrap=document.getElementById('ss-'+i);
+  wrap.style.display='block';
+  wrap.innerHTML='<div style="font-size:10px;color:var(--gray);padding:8px;">⏳ Capturando sitio...</div>';
+  try{
+    const r=await fetch(BACKEND+'/screenshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const d=await r.json();
+    if(d.ok&&d.image){
+      wrap.innerHTML=`<img src="data:image/jpeg;base64,${d.image}" alt="screenshot"/>`;
+    } else {
+      wrap.innerHTML='<div style="font-size:10px;color:var(--red);padding:8px;">✗ No se pudo capturar</div>';
+    }
+  }catch(e){
+    wrap.innerHTML='<div style="font-size:10px;color:var(--red);padding:8px;">✗ '+e.message+'</div>';
+  }
+}
+
+function toggleDM(i){
+  const wrap=document.getElementById('dm-'+i);
+  wrap.style.display=wrap.style.display==='none'||!wrap.style.display?'block':'none';
+}
+
+function copyDM(i){
+  const txt=document.getElementById('dm-txt-'+i).value;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=event.target; btn.textContent='✓ Copiado';
+    setTimeout(()=>btn.textContent='Copiar DM',1500);
+  });
+}
+
+// ── EXPORT ───────────────────────────────────────────────────────
+async function doExport(){
+  const selected=prospects.filter((_,i)=>document.getElementById('pi-'+i)?.classList.contains('selected'));
+  if(!selected.length)return alert('Seleccioná al menos un prospecto');
+  const url=document.getElementById('prospector-url').value.trim();
+  document.getElementById('btn-export').disabled=true;
+  document.getElementById('btn-export').textContent='Exportando...';
+  // Limpiar campos extra antes de exportar
+  const clean=selected.map(p=>({brand:p.brand,contact:p.contact,email:p.email,url:p.url,problem:p.problem,source:p.source,notes:p.notes}));
+  try{
+    const r=await fetch(url+'/api/prospects/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prospects:clean})});
+    const d=await r.json();
+    if(d.ok){ exportLog(`✓ ${d.added} prospectos exportados a ProspectorAI`,'ok'); }
+    else { exportLog('✗ '+JSON.stringify(d),'err'); }
+  }catch(e){
+    exportLog('✗ Error: '+e.message,'err');
+    exportLog('→ Descargá el JSON y subilo con curl','warn');
+  }
+  document.getElementById('btn-export').disabled=false;
+  document.getElementById('btn-export').textContent='↑ Exportar seleccionados a ProspectorAI';
+}
+
+function downloadJSON(){
+  const selected=prospects.filter((_,i)=>document.getElementById('pi-'+i)?.classList.contains('selected'));
+  if(!selected.length)return alert('Seleccioná prospectos primero');
+  const clean=selected.map(p=>({brand:p.brand,contact:p.contact,email:p.email,url:p.url,problem:p.problem,source:p.source,notes:p.notes}));
+  const blob=new Blob([JSON.stringify({prospects:clean},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='prospectos_ig_'+Date.now()+'.json'; a.click();
+}
+
+function downloadCSV(){
+  const selected=prospects.filter((_,i)=>document.getElementById('pi-'+i)?.classList.contains('selected'));
+  if(!selected.length)return alert('Seleccioná prospectos primero');
+  const rows=[['Marca','Usuario IG','Email','Web','Seguidores','Problema','Fuente','Argentina']];
+  selected.forEach(p=>rows.push([p.brand,`@${p.ig_username}`,p.email,p.url,p.followers,p.problem,p.source,p.is_ar?'Sí':'No']));
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,"'")}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='prospectos_ig_'+Date.now()+'.csv'; a.click();
+}
+
+// ── FAVORITES ────────────────────────────────────────────────────
+async function loadFavorites(){
+  try{
+    const r=await fetch(BACKEND+'/favorites');
+    const d=await r.json();
+    if(d.ok&&d.favorites.length){
+      document.getElementById('sec-favs').style.display='block';
+      renderFavorites(d.favorites);
+    }
+  }catch(e){}
+}
+
+function renderFavorites(favs){
+  document.getElementById('favs-list').innerHTML=favs.map(f=>`
+    <div class="fav-item">
+      <div>
+        <div class="fav-name">${f.name}</div>
+        <div class="fav-meta">${f.mode} · ${f.hashtag?'#'+f.hashtag:''} ${f.account?'@'+f.account:''} · ${f.only_ar?'🇦🇷 AR':'todos'}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-sm" onclick="loadFavorite(${JSON.stringify(f).replace(/"/g,'&quot;')})">Cargar</button>
+        <button class="btn-sm" onclick="deleteFavorite('${f.name}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function saveFavorite(){
+  const name=prompt('Nombre para esta búsqueda:');
+  if(!name)return;
+  const fav={
+    name, mode,
+    hashtag:(document.getElementById('s-hashtag')?.value||document.getElementById('s-hashtag2')?.value||'').trim(),
+    account:(document.getElementById('s-account')?.value||document.getElementById('s-account2')?.value||'').trim(),
+    hq:document.getElementById('s-hq')?.value||30,
+    fq:document.getElementById('s-fq')?.value||50,
+    min_followers:document.getElementById('f-min').value,
+    max_followers:document.getElementById('f-max').value,
+    filter_web:document.getElementById('f-web').value,
+    only_ar:document.getElementById('f-ar').value==='ar'
+  };
+  await fetch(BACKEND+'/favorites/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({favorite:fav})});
+  log(`★ Búsqueda "${name}" guardada`,'ok');
+  loadFavorites();
+}
+
+function loadFavorite(f){
+  setMode(f.mode||'hashtag');
+  if(f.hashtag){ const el=document.getElementById('s-hashtag')||document.getElementById('s-hashtag2'); if(el)el.value=f.hashtag; }
+  if(f.account){ const el=document.getElementById('s-account')||document.getElementById('s-account2'); if(el)el.value=f.account; }
+  if(f.min_followers) document.getElementById('f-min').value=f.min_followers;
+  if(f.max_followers) document.getElementById('f-max').value=f.max_followers;
+  if(f.filter_web) document.getElementById('f-web').value=f.filter_web;
+  document.getElementById('f-ar').value=f.only_ar?'ar':'any';
+  log(`★ Búsqueda "${f.name}" cargada`,'ok');
+}
+
+async function deleteFavorite(name){
+  await fetch(BACKEND+'/favorites/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  loadFavorites();
+}
+
+// ── LINKEDIN ─────────────────────────────────────────────────────
+let currentPlatform = 'ig';
+
+function setPlatform(p){
+  currentPlatform = p;
+  ['ig','li','both'].forEach(id=>{
+    document.getElementById('ptab-'+id).classList.toggle('on', id===p);
+  });
+  // IG sections
+  ['sec-login','sec-search','sec-favs'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = (p==='ig'||p==='both') ? '' : 'none';
+  });
+  // LI sections
+  const liLogin = document.getElementById('sec-li-login');
+  if(liLogin) liLogin.style.display = (p==='li'||p==='both') ? 'block' : 'none';
+  const liSearch = document.getElementById('sec-li-search');
+  if(liSearch) liSearch.style.display = (p==='li'||p==='both') ? 'block' : 'none';
+}
+
+async function doSearchBoth(){
+  // Run IG and LI searches in parallel
+  const btn = document.getElementById('btn-search');
+  btn.disabled=true;
+  prospects=[];
+  document.getElementById('sec-results').style.display='none';
+  log('⚡ Buscando en Instagram Y LinkedIn simultáneamente...');
+  setProgress(10,'Buscando en ambas plataformas...');
+  const [igResult, liResult] = await Promise.allSettled([
+    fetch(BACKEND+'/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      mode, hashtag:(document.getElementById('s-hashtag')?.value||'').trim(),
+      account:(document.getElementById('s-account')?.value||'').trim().replace('@',''),
+      hq:parseInt(document.getElementById('s-hq')?.value||30),
+      fq:parseInt(document.getElementById('s-fq')?.value||50),
+      min_followers:parseInt(document.getElementById('f-min').value||100),
+      max_followers:parseInt(document.getElementById('f-max').value||500000),
+      filter_web:document.getElementById('f-web').value,
+      only_ar:document.getElementById('f-ar').value==='ar'
+    })}).then(r=>r.json()),
+    fetch(BACKEND+'/linkedin/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      query:document.getElementById('li-query')?.value?.trim()||document.getElementById('s-hashtag')?.value?.trim()||'ecommerce',
+      location:document.getElementById('li-location')?.value?.trim()||'Argentina',
+      amount:parseInt(document.getElementById('li-amount')?.value||20),
+      only_ar:document.getElementById('li-ar')?.value==='ar'
+    })}).then(r=>r.json())
+  ]);
+  let igProspects=[], liProspects=[];
+  if(igResult.status==='fulfilled'&&igResult.value.ok){
+    igProspects=igResult.value.prospects||[];
+    log('✓ Instagram: '+igProspects.length+' encontrados','ok');
+  } else { log('⚠ Instagram: '+(igResult.reason||igResult.value?.error||'error'),'warn'); }
+  if(liResult.status==='fulfilled'&&liResult.value.ok){
+    liProspects=liResult.value.prospects||[];
+    log('✓ LinkedIn: '+liProspects.length+' encontrados','ok');
+  } else { log('⚠ LinkedIn: '+(liResult.reason||liResult.value?.error||'error — ¿logueado?'),'warn'); }
+  // Tag source and merge
+  igProspects.forEach(p=>p._platform='ig');
+  liProspects.forEach(p=>p._platform='li');
+  prospects=[...igProspects,...liProspects];
+  setProgress(100,'Completado');
+  log('⚡ Total: '+prospects.length+' prospectos','ok');
+  if(prospects.length) renderMixedProspects();
+  setTimeout(()=>setProgress(0,''),2000);
+  btn.disabled=false;
+}
+
+function renderMixedProspects(){
+  const list=document.getElementById('prospect-list');
+  document.getElementById('result-count').textContent=prospects.length+' encontrados';
+  document.getElementById('sec-results').style.display='block';
+  list.innerHTML=prospects.map((p,i)=>`
+    <div class="pi selected" id="pi-${i}">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+          <span style="font-size:10px;padding:2px 7px;border:1px solid rgba(242,170,191,.2);color:${p._platform==='ig'?'var(--pink)':'#0077b5'}">${p._platform==='ig'?'📸 IG':'💼 LI'}</span>
+          <div class="pi-name" style="margin:0">${p.brand}</div>
+        </div>
+        ${p._platform==='ig'?
+          `<div class="pi-user" onclick="openIG('${p.ig_username||''}')">@${p.ig_username||''} · ${(p.followers||0).toLocaleString()} seg.</div>`:
+          `<div class="pi-user" style="color:#0077b5;cursor:pointer;" onclick="window.open('${p.li_url||'#'}','_blank')">💼 Ver en LinkedIn</div>`
+        }
+        <div class="pi-problem">${p.problem}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+          ${p.email?'<span class="tag g">✓ '+p.email+'</span>':'<span class="tag">sin email</span>'}
+          ${p.url?'<span class="tag p">🌐 web</span>':'<span class="tag">sin web</span>'}
+          ${p.is_ar?'<span class="tag ar">🇦🇷 AR</span>':''}
+        </div>
+        <div class="pi-actions" style="margin-top:6px;">
+          <button class="btn-sm" onclick="toggleDM(${i})">✉ Mensaje</button>
+          ${p.url?'<button class="btn-sm" onclick="doScreenshot('+i+',\''+p.url+'\')">📸 Captura</button>':''}
+          ${p._platform==='ig'?'<button class="btn-sm" onclick="openIG(\''+p.ig_username+'\')">↗ IG</button>':''}
+        </div>
+        <div class="screenshot-wrap" id="ss-${i}"></div>
+        <div class="dm-wrap" id="dm-${i}" style="display:none;">
+          <textarea id="dm-txt-${i}">${p._platform==='ig'?generateDMPreview(p):generateLiMsgPreview(p)}</textarea>
+          <div class="dm-actions"><button class="btn-sm" onclick="copyDM(${i})">Copiar</button>${p._platform==='ig'?'<button class="btn-sm" onclick="openIG(\''+p.ig_username+'\')">Abrir en IG →</button>':''}</div>
+        </div>
+      </div>
+      <div class="pi-check on" id="chk-${i}" onclick="toggleSelect(${i})">✓</div>
+    </div>`).join('');
+}
+
+async function doLiLogin(){
+  const email = document.getElementById('li-email').value.trim();
+  const pass  = document.getElementById('li-pass').value.trim();
+  if(!email||!pass) return alert('Ingresá email y contraseña de LinkedIn');
+  const btn = document.getElementById('btn-li-login');
+  btn.disabled=true; btn.textContent='Abriendo navegador...';
+  log('Iniciando login LinkedIn — se abrirá una ventana...');
+  try{
+    const r = await fetch(BACKEND+'/linkedin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    const d = await r.json();
+    if(d.ok){
+      log('✓ LinkedIn conectado — '+email,'ok');
+      document.getElementById('sec-li-search').style.display='block';
+      btn.textContent='✓ Conectado';
+    } else throw new Error(d.error);
+  }catch(e){
+    log('✗ '+e.message,'err');
+    btn.disabled=false; btn.textContent='Reintentar →';
+  }
+}
+
+async function doLiSearch(){
+  const btn = document.getElementById('btn-li-search');
+  btn.disabled=true; btn.textContent='Buscando...'; btn.classList.add('scanning');
+  prospects=[]; document.getElementById('sec-results').style.display='none';
+  const params = {
+    query:    document.getElementById('li-query').value.trim(),
+    location: document.getElementById('li-location').value.trim()||'Argentina',
+    amount:   parseInt(document.getElementById('li-amount').value||20),
+    only_ar:  document.getElementById('li-ar').value==='ar'
+  };
+  if(!params.query) return alert('Ingresá un rubro o palabra clave');
+  log('Buscando en LinkedIn: "'+params.query+'" en '+params.location);
+  setProgress(10,'Abriendo LinkedIn...');
+  try{
+    const r=await fetch(BACKEND+'/linkedin/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+    const d=await r.json();
+    if(d.ok){
+      prospects=d.prospects;
+      setProgress(100,'Completado');
+      log('✓ '+prospects.length+' empresas encontradas en LinkedIn','ok');
+      renderLiProspects();
+      setTimeout(()=>setProgress(0,''),2000);
+    } else throw new Error(d.error);
+  }catch(e){
+    log('✗ '+e.message,'err');
+    setProgress(0,'');
+  }
+  btn.disabled=false; btn.textContent='💼 Buscar en LinkedIn'; btn.classList.remove('scanning');
+}
+
+function renderLiProspects(){
+  const list=document.getElementById('prospect-list');
+  document.getElementById('result-count').textContent=prospects.length+' encontrados';
+  document.getElementById('sec-results').style.display='block';
+  list.innerHTML=prospects.map((p,i)=>`
+    <div class="pi selected" id="pi-${i}">
+      <div>
+        <div class="pi-name">${p.brand}</div>
+        <div class="pi-user" style="color:#0077b5;cursor:pointer;" onclick="window.open('${p.li_url||'https://linkedin.com'}','_blank')">💼 Ver en LinkedIn</div>
+        <div class="pi-problem" style="margin-top:4px;">${p.notes}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+          ${p.industry?'<span class="tag p">'+p.industry+'</span>':''}
+          ${p.location?'<span class="tag">'+p.location+'</span>':''}
+          ${p.is_ar?'<span class="tag ar">🇦🇷 AR</span>':''}
+        </div>
+        <div class="pi-actions" style="margin-top:6px;">
+          <button class="btn-sm" onclick="toggleDM(${i})">✉ Mensaje</button>
+          ${p.url?'<button class="btn-sm" onclick="doScreenshot('+i+',\''+p.url+'\')">📸 Captura</button>':''}
+        </div>
+        <div class="screenshot-wrap" id="ss-${i}"></div>
+        <div class="dm-wrap" id="dm-${i}" style="display:none;">
+          <textarea id="dm-txt-${i}">${generateLiMsgPreview(p)}</textarea>
+          <div class="dm-actions"><button class="btn-sm" onclick="copyDM(${i})">Copiar mensaje</button></div>
+        </div>
+      </div>
+      <div class="pi-check on" id="chk-${i}" onclick="toggleSelect(${i})">✓</div>
+    </div>`).join('');
+}
+
+function generateLiMsgPreview(p){
+  return `Hola, vi el perfil de ${p.brand} en LinkedIn y me pareció interesante su trabajo en ${p.industry||'su sector'}. En DiazUX Studio ayudamos a empresas a mejorar su presencia digital y aumentar conversiones. ¿Estarían abiertos a una auditoría web gratuita sin compromiso?`;
+}
+
+setMode('hashtag');
+log('Sistema listo — ingresá tus credenciales','info');
+</script>
+</body>
+</html>

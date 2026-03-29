@@ -1,0 +1,478 @@
+<!--
+═══════════════════════════════════════════════════════════════
+CONTENT STUDIO — Panel para index.html
+DiazUX Studio · Fase 1
+
+INSTRUCCIONES DE INTEGRACIÓN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. En el SIDEBAR (dentro de <aside class="sb">), después de la línea
+   <div class="ni" onclick="go('scraper')">...</div>
+   agregá:
+   
+   <div class="ni" onclick="go('contenido')"><span class="ni-ic">◈</span>Content Studio</div>
+   <div class="ni" onclick="go('dms')"><span class="ni-ic">✉</span>DM Campaigns</div>
+
+2. En el dict `titles` del JS, agregá:
+   contenido:'Content Studio', dms:'DM Campaigns',
+
+3. En la función go(), agregá:
+   if(id==='contenido') loadContentStudio();
+   
+4. Pegá el HTML de abajo ANTES de </div></div> del cierre de .content
+
+5. Pegá el JavaScript de abajo ANTES del cierre </script>
+═══════════════════════════════════════════════════════════════
+-->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PANEL: CONTENT STUDIO
+════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-contenido">
+  <div class="sh">
+    <div class="sh-lbl">Content Studio</div>
+    <h1 class="sh-title">Contenido que<br><em>convierte.</em></h1>
+    <p class="sh-sub">Claude genera Stories, Reels, posts y carruseles listos para publicar. Copiá, subí y listo.</p>
+  </div>
+
+  <!-- TABS DE TIPO -->
+  <div style="display:flex;gap:1px;background:rgba(242,170,191,.06);margin-bottom:22px;max-width:560px;">
+    <button class="btn-s" id="ct-story"   onclick="ctab('story')"   style="flex:1;padding:11px;">📷 Story</button>
+    <button class="btn-s" id="ct-reel"    onclick="ctab('reel')"    style="flex:1;padding:11px;">🎬 Reel</button>
+    <button class="btn-s" id="ct-post"    onclick="ctab('post')"    style="flex:1;padding:11px;">◻ Post</button>
+    <button class="btn-s" id="ct-carousel"onclick="ctab('carousel')"style="flex:1;padding:11px;">⧉ Carrusel</button>
+  </div>
+
+  <!-- FORMULARIO DE CONTENIDO -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="fld" style="grid-column:1/-1;">
+      <label>¿De qué es el contenido?</label>
+      <textarea id="ct-topic" style="min-height:64px;" placeholder="Ej: nueva colección de verano, sale del 30%, cómo elegir el talle correcto, behind the scenes del proceso de producción..."></textarea>
+    </div>
+    <div class="fld">
+      <label>Nicho</label>
+      <select id="ct-niche">
+        <option value="moda indumentaria">Moda / Indumentaria</option>
+        <option value="belleza cosmética">Belleza / Cosmética</option>
+        <option value="gastronomía café">Gastronomía / Café</option>
+        <option value="hogar decoración">Hogar / Decoración</option>
+        <option value="fitness salud">Fitness / Salud</option>
+        <option value="tecnología digital">Tecnología / Digital</option>
+        <option value="diseño web agencia">Agencia / Estudio</option>
+        <option value="joyería accesorios">Joyería / Accesorios</option>
+        <option value="otra marca">Otro</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Objetivo</label>
+      <select id="ct-objective">
+        <option value="vender generar ventas">Vender</option>
+        <option value="ganar seguidores crecer">Crecer / Seguidores</option>
+        <option value="educar aportar valor">Educar / Valor</option>
+        <option value="fidelizar comunidad">Fidelizar</option>
+        <option value="posicionar marca">Posicionar marca</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Tono de marca</label>
+      <select id="ct-tone">
+        <option value="cercano informal">Cercano / Informal</option>
+        <option value="premium aspiracional">Premium / Aspiracional</option>
+        <option value="disruptivo atrevido">Disruptivo / Atrevido</option>
+        <option value="educativo experto">Educativo / Experto</option>
+        <option value="minimalista sofisticado">Minimalista / Sofisticado</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Plataforma</label>
+      <select id="ct-platform">
+        <option value="instagram">Instagram</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="ambas">Instagram + LinkedIn</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+    <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--gray);cursor:none;">
+      <input type="checkbox" id="ct-hashtags" checked style="cursor:none;accent-color:var(--pink);"> Incluir hashtags
+    </label>
+  </div>
+
+  <div class="brow">
+    <button class="btn" onclick="genContent()"><span>Generar contenido</span></button>
+    <div class="ld" id="ld-ct"><div class="sp"></div>Creando con Claude...</div>
+  </div>
+  <div class="err" id="err-ct"></div>
+
+  <!-- RESULTADO -->
+  <div id="res-ct" style="margin-top:24px;"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PANEL: DM CAMPAIGNS
+════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-dms">
+  <div class="sh">
+    <div class="sh-lbl">DM Campaigns</div>
+    <h1 class="sh-title">DMs que abren<br><em>puertas.</em></h1>
+    <p class="sh-sub">Generá secuencias de 3 DMs personalizados para cada prospecto y enviá directo desde acá.</p>
+  </div>
+
+  <!-- SELECCIONAR PROSPECTO -->
+  <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-bottom:14px;">
+    <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">Seleccioná el prospecto</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;">
+      <div class="fld" style="flex:1;">
+        <label>Prospecto del CRM</label>
+        <select id="dm-prospect-sel" onchange="loadDMProspect(this.value)" style="width:100%;background:var(--black-3);border:1px solid rgba(242,170,191,.1);color:var(--white);font-family:var(--font);font-size:13px;padding:11px 14px;outline:none;">
+          <option value="">— Elegí un prospecto —</option>
+        </select>
+      </div>
+      <button class="btn-g" onclick="loadDMProspects()" style="flex-shrink:0;">↺ Actualizar</button>
+    </div>
+    <div id="dm-prospect-preview" style="margin-top:12px;display:none;"></div>
+  </div>
+
+  <!-- DATOS MANUALES (si no está en CRM) -->
+  <div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-bottom:14px;">
+    <div style="font-family:var(--font-t);font-weight:700;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--pink);margin-bottom:14px;">O ingresalo manualmente</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div class="fld"><label>@Instagram</label><input id="dm-ig" placeholder="@marcaejemplo"/></div>
+      <div class="fld"><label>Marca</label><input id="dm-brand" placeholder="Marca Ejemplo"/></div>
+      <div class="fld"><label>Nicho</label>
+        <select id="dm-niche">
+          <option value="moda indumentaria">Moda</option>
+          <option value="belleza cosmética">Belleza</option>
+          <option value="gastronomía">Gastronomía</option>
+          <option value="hogar deco">Hogar / Deco</option>
+          <option value="fitness">Fitness</option>
+          <option value="tecnología">Tech</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="fld" style="grid-column:1/-1;"><label>Problema detectado</label><input id="dm-problem" placeholder="Sin sitio web, vende solo por IG con 8k seguidores..."/></div>
+    </div>
+  </div>
+
+  <div class="brow">
+    <button class="btn" onclick="genDMCampaign()"><span>Generar secuencia DM</span></button>
+    <div class="ld" id="ld-dm"><div class="sp"></div>Escribiendo DMs...</div>
+  </div>
+  <div class="err" id="err-dm"></div>
+  <div id="res-dm" style="margin-top:24px;"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT — Content Studio + DMs
+     Pegá este bloque ANTES de </script>
+════════════════════════════════════════════════════════════════ -->
+<script>
+// ── CONTENT STUDIO ───────────────────────────────────────────────
+let _ctType = 'post';
+function ctab(t) {
+  _ctType = t;
+  ['story','reel','post','carousel'].forEach(x => {
+    const el = document.getElementById('ct-'+x);
+    if(el) el.style.color = x === t ? 'var(--pink)' : '';
+  });
+}
+
+async function genContent() {
+  const topic = document.getElementById('ct-topic').value.trim();
+  if (!topic) return toast('Describí el contenido primero');
+  ld('ct', 1); clr('res-ct'); cerr('err-ct');
+
+  const payload = {
+    type:             _ctType,
+    topic,
+    niche:            document.getElementById('ct-niche').value,
+    objective:        document.getElementById('ct-objective').value,
+    tone:             document.getElementById('ct-tone').value,
+    platform:         document.getElementById('ct-platform').value,
+    include_hashtags: document.getElementById('ct-hashtags').checked,
+  };
+
+  try {
+    const r = await fetch(API + '/ai/content', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    renderContent(d);
+  } catch(e) {
+    err('err-ct', 'Error: ' + e.message);
+  }
+  ld('ct', 0);
+}
+
+function renderContent(d) {
+  if (d.raw) {
+    document.getElementById('res-ct').innerHTML = `<div class="rc"><pre style="font-size:12px;white-space:pre-wrap;color:var(--gray)">${d.caption || d.raw}</pre></div>`;
+    return;
+  }
+
+  const platform = d.platform || 'instagram';
+  const typeLabel = { story: 'Story', reel: 'Reel', post: 'Post', carousel: 'Carrusel' }[d.type] || d.type;
+
+  let h = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <div style="font-family:var(--font-t);font-weight:900;font-size:22px;text-transform:uppercase;">${typeLabel} generado</div>
+    <span class="pill pill-pink">${platform}</span>
+    ${d.best_time ? `<span class="pill" style="background:rgba(96,165,250,.08);color:var(--blue);border:1px solid rgba(96,165,250,.2);">⏰ ${d.best_time}</span>` : ''}
+  </div>`;
+
+  // HOOK
+  if (d.hook) {
+    h += `<div style="background:var(--black-3);border-left:3px solid var(--pink);padding:14px 18px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px;">🎯 GANCHO</div>
+      <div style="font-size:16px;font-weight:500;line-height:1.4;">${d.hook}</div>
+      <button class="btn-s" onclick="cp('${(d.hook||'').replace(/'/g,"\\'")}');toast('Copiado')" style="margin-top:8px;">Copiar</button>
+    </div>`;
+  }
+
+  // SLIDES (story / carrusel)
+  if (d.slides && d.slides.length > 0) {
+    h += `<div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;">📲 SLIDES (${d.slides.length})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">`;
+    d.slides.forEach((sl, i) => {
+      h += `<div style="background:var(--black-3);border:1px solid rgba(242,170,191,.1);padding:12px;flex:1;min-width:180px;max-width:220px;">
+        <div style="font-size:9px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;">SLIDE ${i+1}</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--white);">${sl}</div>
+        <button class="btn-s" onclick="cp('${sl.replace(/'/g,"\\'")}');toast('Slide ${i+1} copiado')" style="margin-top:8px;width:100%;">Copiar</button>
+      </div>`;
+    });
+    h += `</div></div>`;
+  }
+
+  // REEL SCRIPT
+  if (d.reel_script && d.type === 'reel') {
+    h += `<div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;">🎬 GUIÓN DEL REEL</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.8;white-space:pre-wrap;">${d.reel_script}</div>
+      <button class="btn-s" onclick="cp('${(d.reel_script||'').replace(/'/g,"\\'")}');toast('Guión copiado')" style="margin-top:10px;">Copiar guión</button>
+    </div>`;
+  }
+
+  // CAPTION
+  if (d.caption) {
+    h += `<div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;">✍️ CAPTION COMPLETO</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.8;white-space:pre-wrap;">${d.caption}</div>
+      <div class="brow" style="margin-top:12px;">
+        <button class="btn-s" onclick="cp('${(d.caption||'').replace(/'/g,"\\'")}');toast('Caption copiado')">Copiar caption</button>
+        ${d.cta ? `<button class="btn-s" onclick="cp('${(d.cta||'').replace(/'/g,"\\'")}');toast('CTA copiado')">Copiar CTA</button>` : ''}
+      </div>
+    </div>`;
+  }
+
+  // HASHTAGS
+  if (d.hashtags) {
+    const igTags = (d.hashtags.instagram || []).map(t => '#'+t.replace('#','')).join(' ');
+    const liTags = (d.hashtags.linkedin  || []).map(t => '#'+t.replace('#','')).join(' ');
+    h += `<div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;"># HASHTAGS</div>`;
+    if (igTags) h += `<div style="margin-bottom:8px;"><span style="font-size:10px;color:var(--gray);font-family:var(--font-t);font-weight:700;text-transform:uppercase;letter-spacing:.1em;">Instagram</span>
+      <div style="font-size:12px;color:var(--pink);margin:5px 0;line-height:1.8;">${igTags}</div>
+      <button class="btn-s" onclick="cp('${igTags.replace(/'/g,"\\'")}');toast('Tags IG copiados')">Copiar</button></div>`;
+    if (liTags) h += `<div><span style="font-size:10px;color:var(--gray);font-family:var(--font-t);font-weight:700;text-transform:uppercase;letter-spacing:.1em;">LinkedIn</span>
+      <div style="font-size:12px;color:var(--blue);margin:5px 0;">${liTags}</div>
+      <button class="btn-s" onclick="cp('${liTags.replace(/'/g,"\\'")}');toast('Tags LinkedIn copiados')">Copiar</button></div>`;
+    h += `</div>`;
+  }
+
+  // TIPS
+  if (d.tips && d.tips.length) {
+    h += `<div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:18px;">
+      <div style="font-size:10px;color:var(--pink);font-family:var(--font-t);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;">💡 TIPS DE PRODUCCIÓN</div>
+      ${d.tips.map(t=>`<div style="display:flex;gap:8px;padding:5px 0;font-size:13px;color:var(--gray);"><span style="color:var(--pink);flex-shrink:0;">→</span>${t}</div>`).join('')}
+    </div>`;
+  }
+
+  // Botón "publicar en redes" (link al panel social)
+  h += `<div class="brow" style="margin-top:18px;">
+    <button class="btn" onclick="go('social')"><span>Ir a publicar →</span></button>
+    <button class="btn-g" onclick="genContent()">Regenerar</button>
+  </div>`;
+
+  document.getElementById('res-ct').innerHTML = h;
+}
+
+function loadContentStudio() {
+  ctab('post'); // default tab
+}
+
+
+// ── DM CAMPAIGNS ─────────────────────────────────────────────────
+let _dmProspects = [];
+let _dmSelected  = null;
+
+async function loadDMProspects() {
+  try {
+    const prospects = await (await fetch(API + '/prospects')).json();
+    _dmProspects = prospects;
+    const sel = document.getElementById('dm-prospect-sel');
+    sel.innerHTML = '<option value="">— Elegí un prospecto —</option>' +
+      prospects.map(p => `<option value="${p.id}">${p.brand}${p.status ? ' · '+p.status : ''}</option>`).join('');
+  } catch(e) {
+    console.error('Error cargando prospectos:', e);
+  }
+}
+
+function loadDMProspect(pid) {
+  if (!pid) { document.getElementById('dm-prospect-preview').style.display='none'; return; }
+  const p = _dmProspects.find(x => x.id === pid);
+  if (!p) return;
+  _dmSelected = p;
+
+  // Pre-llenar campos manuales con datos del prospecto
+  document.getElementById('dm-brand').value   = p.brand || '';
+  document.getElementById('dm-ig').value      = p.ig_username ? '@'+p.ig_username : (p.notes?.match(/@(\w+)/)?.[1] ? '@'+p.notes.match(/@(\w+)/)[1] : '');
+  document.getElementById('dm-problem').value = p.problem || '';
+
+  const prev = document.getElementById('dm-prospect-preview');
+  prev.style.display = 'block';
+  prev.innerHTML = `<div style="background:var(--black-3);border:1px solid rgba(242,170,191,.1);padding:12px;font-size:12px;color:var(--gray);">
+    <strong style="color:var(--white);">${p.brand}</strong> · ${p.email||'sin email'} · ${p.url||'sin web'}<br>
+    <span style="color:var(--pink);">${p.problem||''}</span>
+  </div>`;
+}
+
+async function genDMCampaign() {
+  const brand   = document.getElementById('dm-brand').value.trim();
+  const problem = document.getElementById('dm-problem').value.trim();
+  const niche   = document.getElementById('dm-niche').value;
+  if (!brand) return toast('Ingresá el nombre de la marca');
+
+  ld('dm', 1); clr('res-dm'); cerr('err-dm');
+
+  const senderName = cfg.name || 'David Díaz';
+  const senderCo   = cfg.company || 'DiazUX Studio';
+
+  try {
+    const r = await fetch(API + '/ai/dm-campaign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand, problem, niche, sender_name: senderName, sender_company: senderCo }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    renderDMCampaign(d);
+  } catch(e) {
+    err('err-dm', 'Error: ' + e.message);
+  }
+  ld('dm', 0);
+}
+
+function renderDMCampaign(d) {
+  if (d.raw) {
+    document.getElementById('res-dm').innerHTML = `<pre style="font-size:12px;white-space:pre-wrap;color:var(--gray)">${d.raw}</pre>`;
+    return;
+  }
+
+  const igUser   = document.getElementById('dm-ig').value.trim().replace('@','');
+  const igId     = _dmSelected?.ig_id || _dmSelected?.ig_username || '';
+  const brand    = document.getElementById('dm-brand').value.trim();
+
+  const dms = [d.dm1, d.dm2, d.dm3].filter(Boolean);
+  const dayLabels = ['Hoy · Día 0', 'Día +3', 'Día +7'];
+  const colors    = ['var(--pink)', 'var(--amber)', 'var(--blue)'];
+
+  let h = `<div style="font-family:var(--font-t);font-weight:900;font-size:20px;text-transform:uppercase;margin-bottom:16px;">
+    Secuencia para <em style="color:var(--pink);">${brand}</em>
+  </div>`;
+
+  dms.forEach((dm, i) => {
+    h += `<div style="background:var(--black-2);border:1px solid rgba(242,170,191,.08);padding:20px;margin-bottom:10px;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div>
+          <span style="font-family:var(--font-t);font-weight:700;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:${colors[i]};">${dayLabels[i]}</span>
+          <div style="font-size:14px;font-weight:500;margin-top:3px;">${dm.subject_line||''}</div>
+        </div>
+        <span style="font-size:10px;color:var(--gray);font-family:var(--font-m);">${(dm.message||'').split(' ').length} palabras</span>
+      </div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:12px;background:var(--black-3);padding:12px;border-left:2px solid ${colors[i]};">${dm.message||''}</div>
+      <div class="brow">
+        <button class="btn-s" onclick="cp('${(dm.message||'').replace(/'/g,"\\'")}');toast('DM ${i+1} copiado')">Copiar DM</button>
+        ${igUser ? `<button class="btn-s" onclick="sendIGDM('${igUser}','${igId}','${(dm.message||'').replace(/'/g,"\\'")}')">Enviar por IG →</button>` : ''}
+      </div>
+    </div>`;
+  });
+
+  h += `<div class="brow" style="margin-top:8px;">
+    <button class="btn-g" onclick="genDMCampaign()">Regenerar</button>
+    ${_dmSelected ? `<button class="btn-g" onclick="openSendModal('${_dmSelected.id}','${_dmSelected.email||''}','${(brand).replace(/'/g,"\\'")}')">Enviar Email también →</button>` : ''}
+  </div>`;
+
+  document.getElementById('res-dm').innerHTML = h;
+}
+
+async function sendIGDM(username, igId, message) {
+  try {
+    const r = await fetch(API + '/social/instagram/dm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, ig_id: igId, message }),
+    });
+    const d = await r.json();
+    if (d.ok) toast('✓ DM enviado a @'+username);
+    else toast('Error: ' + (d.error||'No se pudo enviar'));
+  } catch(e) {
+    toast('Error de conexión: ' + e.message);
+  }
+}
+
+// Cargar prospectos cuando se va al panel de DMs
+// Agregar en la función go():  if(id==='dms') loadDMProspects();
+</script>
+
+<!--
+═══════════════════════════════════════════════════════════════
+ADEMÁS: Actualizá la función genSeq() (Secuencias) para usar
+Claude en vez de Ollama. Reemplazá el bloque de la función:
+
+async function genSeq() {
+  const brand = document.getElementById('sq-br').value.trim();
+  const problem = document.getElementById('sq-pr').value.trim();
+  const contact = document.getElementById('sq-cn').value.trim();
+  const sender = document.getElementById('sq-sn').value.trim();
+  if (!brand) return toast('Ingresá la marca');
+  ld('sq', 1); clr('res-sq'); cerr('err-sq');
+
+  // Si hay prospecto en CRM, usar /api/ai/personalize
+  // Si no, usar /api/ai/generate con prompt de secuencia
+  
+  const promptSeq = `Generá una secuencia de 3 emails de outreach para la marca "${brand}".
+Problema detectado: ${problem || 'sitio web desactualizado'}
+Contacto: ${contact || 'el/la dueño/a'}
+Remitente: ${sender}
+
+SOLO JSON sin markdown:
+{"emails":[
+  {"day":0,"subject":"Asunto email 1","body":"Cuerpo email 1 (120 palabras max)"},
+  {"day":3,"subject":"Asunto email 2","body":"Cuerpo email 2 (100 palabras max)"},  
+  {"day":7,"subject":"Asunto email 3","body":"Cuerpo email 3 (80 palabras max)"}
+]}`;
+
+  try {
+    const r = await fetch(API+'/ai/generate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt: promptSeq})
+    });
+    const resp = await r.json();
+    if (!resp.ok) throw new Error(resp.error);
+    const d = pj(resp.response);
+    if (!d) throw new Error('Sin respuesta válida');
+    renderSeq(d.emails || []);
+  } catch(e) {
+    err('err-sq', 'Error: ' + e.message);
+  }
+  ld('sq', 0);
+}
+═══════════════════════════════════════════════════════════════
+-->
