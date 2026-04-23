@@ -3,3 +3,4 @@ flask-cors>=4.0.0
 instagrapi>=2.1.2
 requests>=2.31.0
 playwright>=1.40.0
+beautifulsoup4>=4.12.0
